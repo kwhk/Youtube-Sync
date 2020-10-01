@@ -1,44 +1,42 @@
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
+import Youtube from 'react-youtube';
 
 export default function YoutubePlayer() {
-  var tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  var firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-  
-  var player;
-  function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
-      height: '390',
-      width: '640',
-      videoId: 'M7lc1UVf-VE',
-      events: {
-        'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange
-      }
-    });
-  }
-  
-  function onPlayerReady(event) {
-    event.target.playVideo();
+  const opts = {
+    height: '390',
+    width: '640',
+    playerVars: {
+      // https://developers.google.com/youtube/player_parameters
+      controls: 0,
+      disablekb: 0,
+      modestbranding: 1
+    },
   }
 
-  function onPlayerStateChange(event) {
-    if (event.data == YT.PlayerState.PLAYING && !done) {
-      setTimeout(this.stopVideo, 6000);
-      done = true;
-    }
-  }
+  const [player, setPlayer] = useState(null);
 
-  function stopVideo() {
-    player.stopVideo();
+  const play = () => {
+    console.log('playing');
+    player.playVideo();
   }
-
-  useEffect(() => {
-    
-  })
   
+  const pause = () => {
+    console.log('pause');
+    player.pauseVideo();
+  }
+
+  const onReady = (e) => {
+    console.log('onReady...');
+    setPlayer(e.target);
+  }
+
   return (
-    <div id="player"></div>
+    <div>
+      <Youtube videoId="D1PvIWdJ8xo" opts={opts} onReady={onReady}/>
+      <div>
+        <button onClick={play}>play</button>
+        <button onClick={pause}>pause</button>
+      </div>
+    </div>
   )
 }
