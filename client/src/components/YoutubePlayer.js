@@ -1,4 +1,6 @@
-import React, { Component, useState } from 'react';
+import React, { Component, useState, useEffect } from 'react';
+import socketIo from "socket.io-client";
+
 import Youtube from 'react-youtube';
 
 export default function YoutubePlayer() {
@@ -29,6 +31,12 @@ export default function YoutubePlayer() {
     console.log('onReady...');
     setPlayer(e.target);
   }
+
+  useEffect(() => {
+    console.log('socket connected');
+    const socket = socketIo(process.env.REACT_APP_API_HOST);
+    return () => socket.disconnect();
+  });
 
   return (
     <div>
