@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import socketIo from "socket.io-client";
 
 import Youtube from 'react-youtube';
@@ -9,13 +9,13 @@ export default class YoutubePlayer extends Component {
     super(props);
     this.state = {
       player: null,
-      currTime: 0,
+      currVideoTime: 0,
       socket: null
     }
 
     this.opts = {
-      height: '390',
-      width: '640',
+      height: '720',
+      width: '1280',
       playerVars: {
         // https://developers.google.com/youtube/player_parameters
         controls: 0,
@@ -26,8 +26,13 @@ export default class YoutubePlayer extends Component {
   }
 
   componentDidMount() {
-    this.setState({socket: socketIo(process.env.REACT_APP_API_HOST)}, () => {
+    let socket = socketIo(process.env.REACT_APP_API_HOST);
+    this.setState({socket}, () => {
       console.log('socket connected');
+    });
+
+    socket.on('syncTime', data => {
+      console.log(data);
     });
   }
 
@@ -35,40 +40,43 @@ export default class YoutubePlayer extends Component {
     this.state.socket.disconnect();
   }
   
-  play = () => {
+  playVideo = () => {
     console.log('playing');
     this.state.player.playVideo();
   }
   
-  pause = () => {
+  pauseVideo = () => {
     console.log('pause');
     this.state.player.pauseVideo();
   }
 
-  onReady = (e) => {
+  onVideoReady = (e) => {
     console.log('onReady...');
     this.setState({player: e.target});
   }
 
-  changeTime = (e) => {
-    this.setState({currTime: e.target.value});
+  adjustProgress = (e) => {
+    this.setState({currVideoTime: e.target.value});
   }
 
-  seek = (e) => {
+  seekToTimestamp = (e) => {
     console.log(e.target.value);
+    this.state.socket.emit('syncTime', e.target.value);
   }
+
+  
 
   render() {
     return (
       <div>
-        <Youtube videoId="D1PvIWdJ8xo" opts={this.opts} onReady={this.onReady}/>
+        <Youtube videoId="D1PvIWdJ8xo" opts={this.opts} onReady={this.onVideoReady}/>
         <div className="d-flex flex-row justify-content-center width-100" style={{marginTop: "5px"}}>
           <div>
-            <button onClick={this.play}>play</button>
-            <button onClick={this.pause}>pause</button>
+            <button onClick={this.playVideo}>play</button>
+            <button onClick={this.pauseVideo}>pause</button>
           </div>
           <div>
-            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currTime} onInput={this.changeTime} onMouseUp={this.seek} step="0.5"/>
+            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoTime} onInput={this.adjustProgress} onMouseUp={this.seekToTimestamp} step="0.5"/>
           </div>
         </div>
       </div>
