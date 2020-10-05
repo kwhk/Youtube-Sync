@@ -32,41 +32,63 @@ export default class YoutubePlayer extends Component {
       console.log('socket connected');
     });
 
-    socket.on('syncTime', data => {
-      console.log(data);
+    socket.on('seekTo', sec => {
+      this.seekToSec(sec);
     });
+
+    socket.on('play', () => {
+      console.log('SERVER SAYS PLAY!')
+      this.playVideo();
+    })
+
+    socket.on('pause', () => {
+      console.log('SERVER SAYS PAUSE!');
+      this.pauseVideo();
+    })
   }
 
   componentWillUnmount() {
     this.state.socket.disconnect();
   }
   
+  playVideoEmit = () => {
+    if (this.playVideo()) {
+      this.state.socket.emit('play');
+    }
+  }
+
   playVideo = () => {
     if (this.state.player) {
-      console.log('PLAY');
       this.state.player.playVideo();
       this.lockProgressBar();
+      return true;
+    }
+    return false;
+  }
+
+  pauseVideoEmit = () => {
+    if (this.pauseVideo()) {
+      this.state.socket.emit('pause');
     }
   }
   
   pauseVideo = () => {
     if (this.state.player) {
-      console.log('PAUSE');
       this.state.player.pauseVideo();
       this.unlockProgressBar();
+      return true;
     }
+    return false;
   }
 
   lockProgressBar = () => {
     if (!this.calcProgressInterval) {
-    console.log('\tlocking progress bar...');
       this.calcProgressInterval = setInterval(() => this.calculateProgress(), 100);
     }
   }
 
   unlockProgressBar = () => {
     if (this.calcProgressInterval) {
-      console.log('\tunlocking progress bar...');
       clearInterval(this.calcProgressInterval);
       this.calcProgressInterval = null;
     }
@@ -78,24 +100,30 @@ export default class YoutubePlayer extends Component {
 
   changeProgress = (e) => {
     if (this.state.player) {
-      console.log('changing progress...');
       this.setState({currVideoPercent: e.target.value});
     }
   }
 
-  seekToTimestamp = (e) => {
+  percentToSec = (percent) => {
+    return (percent / 100) * this.state.player.getDuration();
+  }
+
+  seekToSec = (sec) => {
     if (this.state.player) {
-      let sec = (e.target.value / 100) * this.state.player.getDuration();
-      this.state.socket.emit('syncTime', sec);
       this.state.player.seekTo(sec)
-      console.log('\tseeked to ' + sec);
-      this.setState({currVideoPercent: e.target.value});
+      return true;
+    }
+    return false;
+  }
+
+  seekToSecEmit = (sec) => {
+    if (this.seekToSec(sec)) {
+      this.state.socket.emit('seekTo', sec);
     }
   }
 
   calculateProgress = () => {
     if (this.state.player) {
-      console.log('calculate progress...');
       let percent = this.state.player.getCurrentTime() / this.state.player.getDuration() * 100;
       this.setState({ currVideoPercent: Math.round(10 * percent) / 10 });
     }
@@ -107,11 +135,11 @@ export default class YoutubePlayer extends Component {
         <Youtube videoId="D1PvIWdJ8xo" opts={this.opts} onReady={this.onVideoReady}/>
         <div className="d-flex flex-row justify-content-center width-100" style={{marginTop: "5px"}}>
           <div>
-            <button onClick={this.playVideo}>play</button>
-            <button onClick={this.pauseVideo}>pause</button>
+            <button onClick={this.playVideoEmit}>play</button>
+            <button onClick={this.pauseVideoEmit}>pause</button>
           </div>
           <div>
-            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoPercent} onChange={this.changeProgress} onMouseUp={(e) => {console.log('MOUSE UP'); this.seekToTimestamp(e)}} onMouseDown={() => {console.log('MOUSE DOWN'); this.unlockProgressBar()}} step="0.1"/>
+            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoPercent} onChange={this.changeProgress} onMouseUp={(e) => {this.seekToSecEmit(this.percentToSec(e.target.value))}} onMouseDown={this.unlockProgressBar} step="0.1"/>
           </div>
         </div>
       </div>
