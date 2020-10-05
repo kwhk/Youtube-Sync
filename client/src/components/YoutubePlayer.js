@@ -27,6 +27,7 @@ export default class YoutubePlayer extends Component {
 
   componentDidMount() {
     let socket = socketIo(process.env.REACT_APP_API_HOST);
+
     this.setState({socket}, () => {
       console.log('socket connected');
     });
@@ -41,30 +42,52 @@ export default class YoutubePlayer extends Component {
   }
   
   playVideo = () => {
-    console.log('playing');
-    this.state.player.playVideo();
+    if (this.state.player) {
+      this.state.player.playVideo();
+      this.unlockProgressBar();
+    }
   }
   
   pauseVideo = () => {
-    console.log('pause');
-    this.state.player.pauseVideo();
+    if (this.state.player) {
+      this.state.player.pauseVideo();
+      this.lockProgressBar();
+    }
   }
 
+  unlockProgressBar = () => {
+    this.calcProgressInterval = setInterval(() => this.calculateProgress(), 100);
+  }
+
+  lockProgressBar = () => {
+    clearInterval(this.calcProgressInterval);
+  }  
+
   onVideoReady = (e) => {
-    console.log('onReady...');
     this.setState({player: e.target});
   }
 
-  adjustProgress = (e) => {
-    this.setState({currVideoTime: e.target.value});
+  changeProgress = (e) => {
+    if (this.state.player) {
+      this.setState({currVideoTime: e.target.value});
+    }
   }
 
   seekToTimestamp = (e) => {
-    console.log(e.target.value);
-    this.state.socket.emit('syncTime', e.target.value);
+    if (this.state.player) {
+      let sec = (e.target.value / 100) * this.state.player.getDuration();
+      this.state.socket.emit('syncTime', sec);
+      this.state.player.seekTo(sec)
+      this.unlockProgressBar();
+    }
   }
 
-  
+  calculateProgress = () => {
+    if (this.state.player) {
+      let percent = this.state.player.getCurrentTime() / this.state.player.getDuration() * 100;
+      this.setState({ currVideoTime: Math.round(10 * percent) / 10 });
+    }
+  }
 
   render() {
     return (
@@ -76,7 +99,7 @@ export default class YoutubePlayer extends Component {
             <button onClick={this.pauseVideo}>pause</button>
           </div>
           <div>
-            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoTime} onInput={this.adjustProgress} onMouseUp={this.seekToTimestamp} step="0.5"/>
+            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoTime} onChange={this.changeProgress} onMouseUp={this.seekToTimestamp} onMouseDown={this.lockProgressBar} step="0.1"/>
           </div>
         </div>
       </div>
