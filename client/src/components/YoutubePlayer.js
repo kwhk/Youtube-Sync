@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import socketIo from "socket.io-client";
 import Youtube from 'react-youtube';
 
 import './YoutubePlayer.css';
@@ -10,7 +9,6 @@ export default class YoutubePlayer extends Component {
     this.state = {
       player: null,
       currVideoPercent: 0,
-      socket: null
     }
 
     this.opts = {
@@ -26,34 +24,24 @@ export default class YoutubePlayer extends Component {
   }
 
   componentDidMount() {
-    let socket = socketIo(process.env.REACT_APP_API_HOST);
-
-    this.setState({socket}, () => {
-      console.log('socket connected');
-    });
-
-    socket.on('seekTo', sec => {
+    this.props.socket.on('seekTo', sec => {
       this.seekToSec(sec);
     });
 
-    socket.on('play', () => {
+    this.props.socket.on('play', () => {
       console.log('SERVER SAYS PLAY!')
       this.playVideo();
     })
 
-    socket.on('pause', () => {
+    this.props.socket.on('pause', () => {
       console.log('SERVER SAYS PAUSE!');
       this.pauseVideo();
     })
   }
-
-  componentWillUnmount() {
-    this.state.socket.disconnect();
-  }
   
   playVideoEmit = () => {
     if (this.playVideo()) {
-      this.state.socket.emit('play');
+      this.props.socket.emit('play');
     }
   }
 
@@ -68,7 +56,7 @@ export default class YoutubePlayer extends Component {
 
   pauseVideoEmit = () => {
     if (this.pauseVideo()) {
-      this.state.socket.emit('pause');
+      this.props.socket.emit('pause');
     }
   }
   
@@ -118,7 +106,7 @@ export default class YoutubePlayer extends Component {
 
   seekToSecEmit = (sec) => {
     if (this.seekToSec(sec)) {
-      this.state.socket.emit('seekTo', sec);
+      this.props.socket.emit('seekTo', sec);
     }
   }
 
@@ -132,7 +120,7 @@ export default class YoutubePlayer extends Component {
   render() {
     return (
       <div>
-        <Youtube videoId="D1PvIWdJ8xo" opts={this.opts} onReady={this.onVideoReady}/>
+        <Youtube videoId={this.props.currPlaying} opts={this.opts} onReady={this.onVideoReady}/>
         <div className="d-flex flex-row justify-content-center width-100" style={{marginTop: "5px"}}>
           <div>
             <button onClick={this.playVideoEmit}>play</button>
