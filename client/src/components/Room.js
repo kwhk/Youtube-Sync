@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import socketIo from 'socket.io-client';
 import YoutubePlayer from './YoutubePlayer';
+import Socket from '../api/socket';
 
 export default class Room extends Component {
   constructor(props) {
@@ -12,21 +12,20 @@ export default class Room extends Component {
   }
 
   componentDidMount() {
-    const socket = socketIo(process.env.REACT_APP_API_HOST);
-
-    this.setState({socket}, () => {
-      console.log('socket connected');
-    });
+    this.setState({socket: new Socket()});
   }
 
   componentWillUnmount() {
-    this.state.socket.disconnect();
+    if (this.state.socket) {
+      this.state.socket.close();
+    }
   }
 
   render() {
+    // if socket is open and ready to communicate
     if (this.state.socket) {
       return (
-        <YoutubePlayer currPlaying="D1PvIWdJ8xo" socket={this.state.socket}/>
+        <YoutubePlayer currPlaying="r00ikilDxW4" socket={this.state.socket}/>
       )
     } else {
       return (

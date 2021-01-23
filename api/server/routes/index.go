@@ -14,7 +14,7 @@ type HelloResponse struct {
 // HelloWorld returns Hello World response
 func HelloWorld(w http.ResponseWriter, r *http.Request) {
 	response := HelloResponse {
-		Message: "Hello dick!",
+		Message: "Hello there!",
 	}
 
 	utils.JSONResponse(w, response, http.StatusOK)
@@ -24,5 +24,6 @@ func HelloWorld(w http.ResponseWriter, r *http.Request) {
 func IndexRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", HelloWorld)
+	r.Mount("/", SocketRouter())
 	return r
 }
