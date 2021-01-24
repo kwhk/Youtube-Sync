@@ -4,19 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
-	// "fmt"
 )
-
-// Client struct for identifying individual socket connection
-type Client struct {
-	ID uuid.UUID
-	// the websocket connection
-	Conn *websocket.Conn
-	Room *Room
-	// buffered channel of outbound messages
-	Send chan Message
-}
 
 type Event struct {
 	Name string `json:"eventName"`
@@ -39,15 +27,6 @@ type Target struct {
 	RoomID *uuid.UUID `json:"roomID,omitempty"`
 	IncludeSender bool `json:"includeSender"`
 }
-
-type Room struct {
-	ID uuid.UUID
-	Register chan *Client
-	Unregister chan *Client
-	Clients map[*Client]bool
-	Broadcast chan Message
-}
-
 
 // UnmarshalJSONMessage for message to discern different message types and unmarshal
 func UnmarshalJSONMessage(message []byte) (*Message, error) {

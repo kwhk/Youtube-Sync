@@ -5,8 +5,18 @@ import (
 	"time"
 	"log"
 	"github.com/gorilla/websocket"
+	"github.com/google/uuid"
 )
 
+// Client struct for identifying individual socket connection
+type Client struct {
+	ID uuid.UUID
+	// the websocket connection
+	Conn *websocket.Conn
+	Room *Room
+	// buffered channel of outbound messages
+	Send chan Message
+}
 
 const (
 	// Time allowed to write a message to the peer.

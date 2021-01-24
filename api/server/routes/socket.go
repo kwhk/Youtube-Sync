@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/go-chi/chi"
 	"net/http"
-	"github.com/kwhk/sync/api/server/bin/websocket"
+	"github.com/kwhk/sync/api/server/web/websocket"
 )
 
 // SocketRouter for websocket endpoints

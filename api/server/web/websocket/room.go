@@ -1,9 +1,17 @@
-package websocket
+package websocket 
 
 import (
 	"fmt"
 	"github.com/google/uuid"
 )
+
+type Room struct {
+	ID uuid.UUID
+	Register chan *Client
+	Unregister chan *Client
+	Clients map[*Client]bool
+	Broadcast chan Message
+}
 
 func NewRoom() *Room {
 	return &Room {
