@@ -37,6 +37,10 @@ func (room *Room) Start() {
 	for {
 		select {
 		case client := <-room.register:
+			// Set first client to register to room as host.
+			if len(room.clients) == 0 {
+				room.host = client
+			}
 			room.clients[client.id] = client
 			room.clientPingMeasure[client.id] = make([]int, 10)
 			fmt.Println("Size of connection room: ", len(room.clients))
@@ -63,22 +67,29 @@ func (room *Room) Start() {
 	}
 }
 
+// messageController following front controller pattern.
 func (room *Room) messageController(message Message) {
-	if message.Event.Name == "ping" {
-		client := room.clients[*message.Source]
-		message = client.measurePing(message)
-	}
+	eventName := message.Event.Name
+	newMessage := EventHandler(eventName, message, room)
 
-	if message.Target != nil {
-		room.broadcast(message)
-	} else {
-		room.emit(message)
+	if newMessage != nil {
+		room.dispatcher(*newMessage)
 	}
 }
 
+func (room *Room) dispatcher(message Message) {
+	fmt.Printf("%+v\n", message)
+	// Dispatch message.
+	if message.Target != nil {
+		room.broadcast(message)
+	} else {
+		client := room.clients[*message.Source]
+		room.emit(message, client)
+	}
+}
 
-// broadcast sends a message to all users in the same room
-// with the option of including / excluding the sender
+// Broadcast sends a message to all users in the same room
+// with the option of including / excluding the sender.
 func (room *Room) broadcast(message Message) {
 	if message.Target.IncludeSender == false {
 		for id, client := range room.clients {
@@ -105,6 +116,7 @@ func (room *Room) broadcast(message Message) {
 	}
 }
 
-func (room *Room) emit(message Message) {
-	room.clients[*message.Source].send <- message
+// Emit onlys ends 
+func (room *Room) emit(message Message, client *Client) {
+	client.send <- message
 }
