@@ -13,29 +13,7 @@ import {
 
 function App() {
   return (
-    <Router>
-      <div>
-        <nav>
-          <ul>
-            <li>
-              <Link to="/">Player</Link>
-            </li>
-            <li>
-              <Link to="/sandbox">Sandbox</Link>
-            </li>
-          </ul>
-        </nav>
-
-        <Switch>
-          <Route path="/sandbox">
-            <Sandbox/>
-          </Route>
-          <Route path="/">
-            <Room />
-          </Route>
-        </Switch>
-      </div>
-    </Router>
+    <Room />
   );
 }
 

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Youtube from 'react-youtube';
-import { poll } from '../api/poll'
+import { poll } from '../api/poll';
+import Ping from '../api/ping';
 
 import './YoutubePlayer.css';
 
@@ -35,8 +36,9 @@ export default class YoutubePlayer extends Component {
 
   componentDidMount() {
     this.props.socket.on('welcome', data => {
-      this.setState({roomID: data.roomID});
+      this.setState({roomID: data.roomID, clientID: data.clientID});
       this.props.socket.clientID = data.clientID;
+      new Ping(this.props.socket);
     })
 
     this.props.socket.on('seekTo', sec => {

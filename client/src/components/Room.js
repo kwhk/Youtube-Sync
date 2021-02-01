@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import YoutubePlayer from './YoutubePlayer';
+import Sandbox from './Sandbox';
 import Socket from '../api/socket';
 
 export default class Room extends Component {
@@ -25,7 +26,10 @@ export default class Room extends Component {
     // if socket is open and ready to communicate
     if (this.state.socket) {
       return (
-        <YoutubePlayer currPlaying="r00ikilDxW4" socket={this.state.socket}/>
+        <div>
+          <YoutubePlayer currPlaying="r00ikilDxW4" socket={this.state.socket}/>
+          <Sandbox socket={this.state.socket}/>
+        </div>
       )
     } else {
       return (

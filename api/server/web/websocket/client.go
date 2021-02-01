@@ -10,12 +10,12 @@ import (
 
 // Client struct for identifying individual socket connection
 type Client struct {
-	ID uuid.UUID
+	id uuid.UUID
 	// the websocket connection
-	Conn *websocket.Conn
-	Room *Room
+	conn *websocket.Conn
+	room *Room
 	// buffered channel of outbound messages
-	Send chan Message
+	send chan Message
 }
 
 const (
@@ -32,44 +32,18 @@ const (
 	maxMessageSize = 512
 )
 
-
-func (c *Client) Read() {
-	defer func() {
-		c.Room.Unregister <- c
-		c.Conn.Close()
-	}()
-
-	for {
-		_, p, err := c.Conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// convert from JSON to Message
-		fmt.Println(string(p))
-		msg, err := UnmarshalJSONMessage([]byte(string(p)))
-
-		if err != nil {
-			fmt.Printf("Message received but unable to unmarshal to JSON\n")
-		}
-		
-		c.Room.Broadcast <- *msg
-	}
-}
-
 func (c *Client) readPump() {
 	defer func() {
-		c.Room.Unregister <- c
-		c.Conn.Close()
+		c.room.unregister <- c
+		c.conn.Close()
 	}()
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, p, err := c.Conn.ReadMessage()
+		_, p, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -85,7 +59,7 @@ func (c *Client) readPump() {
 			fmt.Printf("Message received but unable to unmarshal to JSON\n")
 		}
 		
-		c.Room.Broadcast <- *msg
+		c.room.messageQueue <- *msg
 	}
 }
 
@@ -93,34 +67,91 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		c.conn.Close()
 	}()
 
 	for {
 		select {
-		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The room has closed the channel.
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			if err := c.Conn.WriteJSON(message); err != nil {
+			if err := c.conn.WriteJSON(message); err != nil {
 				log.Printf("error: %v", err)
 			}
 
 			// Add queued chat messages to the current websocket message.
-			n := len(c.Send)
+			n := len(c.send)
 			for i := 0; i < n; i++ {
-				c.Conn.WriteJSON(<-c.Send)
+				c.conn.WriteJSON(<-c.send)
 			}
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
 
 	}
+}
+
+func (c *Client) measurePing(msg Message) Message {
+	// MAX_PING must match clientPingMeasure array size
+	MAX_PING := 10
+
+	type Handshake struct {
+		// All caps represents whether ACK or SYN has been set
+		ACK int `json:"ACK"`
+		SYN int `json:"SYN"`
+		FIN int `json:"FIN"`
+		Seq int `json:"seq"`
+		Ack int `json:"ack"`
+	}
+
+	var newMsg Message
+	var hs map[string]interface{} = msg.Event.Data.(map[string]interface{})
+
+	// Convert all values in handshake from float to int.
+	for key, val := range hs {
+		hs[key] = int(val.(float64))
+	}
+
+	// If SYN bit is 1 and ACK bit has not been set been client, then this is the request for handshake with server.
+	if hs["SYN"] == 1 && hs["ACK"] == 0 {
+		newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{ACK: 1, SYN: 1, Seq: 0, Ack: hs["seq"].(int) + 1}}}
+		c.room.clientLastPing[c.id] = time.Now()
+	// If SYN bit and ACK bit have been set by client, then handshake is complete and is ready for ping measurements.
+	} else if hs["ACK"] == 1 {
+		currTime := time.Now()
+		ping := currTime.Sub(c.room.clientLastPing[c.id]).Milliseconds()
+		c.room.clientLastPing[c.id] = currTime
+
+		if arr, ok := c.room.clientPingMeasure[c.id]; ok {
+			// -1 because initial seq sent (seq = 0) is to request to start ping measurement.
+			arr[hs["seq"].(int) - 1] = int(ping)
+		}
+
+		// Calculate average after MAX_PING tries.
+		if hs["seq"].(int) >= MAX_PING{
+			sum := 0
+			for i := 0; i < MAX_PING; i++ {
+				sum += c.room.clientPingMeasure[c.id][i]
+				// Reset array.
+				c.room.clientPingMeasure[c.id][i] = 0
+			}
+
+			// Divide sum by 2 because ping stored in clientPingMeasure measures latency for round trip and not one way.
+			c.room.clientPing[c.id] = (sum / 2) / MAX_PING
+			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{FIN: 1}}}
+			fmt.Printf("Ping is %d ms\n", c.room.clientPing[c.id])
+		} else {
+			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{ACK: 1, Seq: hs["ack"].(int), Ack: hs["seq"].(int) + 1}}}
+		}
+	}
+
+	return newMsg
 }

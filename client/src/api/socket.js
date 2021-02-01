@@ -7,8 +7,8 @@ export default class Socket {
     on(eventName, cb) {
         this.socket.addEventListener("message", res => {
             let data = JSON.parse(res.data);
-            if (data.body.eventName && (data.body.eventName === eventName)) {
-                cb(data.body.data);
+            if (data.action === "event" && data.event.name && (data.event.name === eventName)) {
+                cb(data.event.data);
             }
         })
 
@@ -18,61 +18,64 @@ export default class Socket {
     // data and callback parameters are optional
     // emit sends to all clients except sender
     emit(eventName, data, cb) {
-        let target = {includeSender: false, sourceClientID: this.clientID}
+        let target = {includeSender: false}
 
-        if (this._targRoomID) {
-            target.targRoomID = this._targRoomID;
-        } else if (this._targUserID) {
-            target.targUserID = this._targUserID;
+        if (this._roomID) {
+            target.roomID = this._roomID;
+        } else if (this._userID) {
+            target.userID = this._userID;
         }
 
-        let obj = {messageType: "event", target, body: {eventName}};
+        let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
 
 
         if (data) {
-            obj.body.data = data;
+            obj.event.data = data;
         }
 
         this.socket.send(JSON.stringify(obj));
 
-        this._targRoomID = null;
-        this._targUserID = null;
+        this.reset();
 
         if (cb && typeof(cb) === "function") cb();
+    }
+
+    reset() {
+        this._roomID = null;
+        this._userID = null;
     }
 
     // broadcasts sends to all clients including sender
     broadcast(eventName, data, cb) {
         let target = {includeSender: true}
         
-        if (this._targRoomID) {
-            target.targRoomID = this._targRoomID;
-        } else if (this._targUserID) {
-            target.targUserID = this._targUserID;
+        if (this._roomID) {
+            target.roomID = this._roomID;
+        } else if (this._userID) {
+            target.userID = this._userID;
         }
         
-        let obj = {messageType: "event", target, body: {eventName}};
+        let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
 
         if (data) {
-            obj.body.data = data;
+            obj.event.data = data;
         }
 
         this.socket.send(JSON.stringify(obj));
 
-        this._targRoomID = null;
-        this._targUserID = null;
+        this.reset();
 
         if (cb && typeof(cb) === "function") cb();
     }
 
     // Sends to RoomID
-    in(targRoomID) {
-        this._targRoomID = targRoomID;
+    in(roomID) {
+        this._roomID = roomID;
         return this;
     }
 
-    to(targUserID) {
-        this._targUserID = targUserID;
+    to(userID) {
+        this._userID = userID;
         return this;
     }
 }

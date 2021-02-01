@@ -32,16 +32,16 @@ func ServeWs(room *Room, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client {
-		ID: uuid.New(),
-		Conn: conn,
-		Room: room,
-		Send: make(chan Message, 256),
+		id: uuid.New(),
+		conn: conn,
+		room: room,
+		send: make(chan Message, 256),
 	}
 
-	client.Room.Register <- client
+	client.room.register <- client
 
 	// Allow connection of memory referenced by the caller by doing
-	// all work in new goroutines
+	// all work in new goroutines.
 	go client.writePump()
 	go client.readPump()
 }

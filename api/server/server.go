@@ -8,7 +8,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/kwhk/sync/api/server/init"
 	"github.com/kwhk/sync/api/server/routes"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
