@@ -74,7 +74,7 @@ export default class YoutubePlayer extends Component {
     return new Promise((resolve, reject) => {
       poll(() => { return player.getPlayerState() === Youtube.PlayerState.PLAYING }, 1500, 1).then(() => {
         player.unMute();
-        self.unlockProgressBar();
+        self.lockProgressBar();
         return resolve();
       }).catch(err => {console.log(err); return reject('Took too long to play')})
     })
@@ -96,7 +96,7 @@ export default class YoutubePlayer extends Component {
 
     return new Promise((resolve, reject) => {
       poll(() => { return player.getPlayerState() === Youtube.PlayerState.PAUSED }, 1500, 1).then(() => {
-        self.lockProgressBar();
+        self.unlockProgressBar();
         return resolve();
       }).catch(err => {console.log(err); return reject('Took too long to pause')})
     })
@@ -166,11 +166,11 @@ export default class YoutubePlayer extends Component {
     return (
       <div className="d-flex flex-col align-items-center">
         <Youtube videoId={this.props.currPlaying} opts={this.opts} onReady={this.onVideoReady} onStateChange={this.onStateChange}/>
-        <div className="d-flex flex-row justify-content-center width-100" style={{marginTop: "5px"}}>
+        <div className="d-flex flex-row justify-content-space-evenly width-100" style={{marginTop: "5px"}}>
           { this.state.isPlaying ?
-            <button onClick={this.pauseVideoEmit}>PAUSE</button>
+            <button onClick={this.pauseVideoEmit}>pause</button>
             :
-            <button onClick={this.playVideoEmit}>play</button>
+            <button onClick={this.playVideoEmit}>playy</button>
           }
           <div>
             <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoPercent} onChange={this.changeProgress} onMouseUp={(e) => {this.seekToSecEmit(this.percentToSec(e.target.value))}} onMouseDown={this.unlockProgressBar} step="0.1"/>
