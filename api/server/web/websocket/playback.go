@@ -4,13 +4,13 @@ package websocket
 
 import "fmt"
 
-type Playback struct {
+type playback struct {
 	message Message
 	room *Room
 	action string
 }
 
-func (p Playback) execute() *Message {
+func (p playback) execute() *Message {
 	switch p.action {
 	case "play":
 		return p.play()
@@ -23,21 +23,21 @@ func (p Playback) execute() *Message {
 	}
 }
 
-func (p Playback) play() *Message {
+func (p playback) play() *Message {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Play()
 	fmt.Printf("Play(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
 	p.room.video.isPlaying = true
 	return &p.message
 }
 
-func (p Playback) pause() *Message {
+func (p playback) pause() *Message {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Pause()
 	fmt.Printf("Pause(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
 	p.room.video.isPlaying = false
 	return &p.message
 }
 
-func (p Playback) seekTo() *Message {
+func (p playback) seekTo() *Message {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64)))
 	fmt.Printf("SeekTo(), seek to second: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
 	return &p.message
