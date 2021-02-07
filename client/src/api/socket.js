@@ -2,6 +2,16 @@ export default class Socket {
     constructor() {
         this.socket = new WebSocket("ws://localhost:8000/api/ws");
         this.clientID = null;
+
+        this.socket.onclose = function(event) {
+            let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
+            console.log('Connection closed: ' + e);
+        }
+        
+        this.socket.onerror = function(event) {
+            let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
+            console.log('Connection error: ' + e);
+        }
     }
 
     on(eventName, cb) {
@@ -28,8 +38,7 @@ export default class Socket {
 
         let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
 
-
-        if (data) {
+        if (data != null) {
             obj.event.data = data;
         }
 
@@ -57,7 +66,7 @@ export default class Socket {
         
         let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
 
-        if (data) {
+        if (data != null) {
             obj.event.data = data;
         }
 
