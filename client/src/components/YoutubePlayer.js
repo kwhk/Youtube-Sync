@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import Youtube from 'react-youtube';
 import { poll } from '../api/poll';
 import Ping from '../api/ping';
+import VideoTimer from '../timer/Timer';
+import Synchronizer from '../sync/Synchronizer';
 
 import './YoutubePlayer.css';
 
@@ -14,8 +16,12 @@ export default class YoutubePlayer extends Component {
       roomID: null,
       // client ID for socket connections
       clientID: null,
-      isPlaying: false
+      isPlaying: false,
+      elapsed: 0,
     }
+
+    this.timer = new VideoTimer(new Date(), 0)
+    this.sync = null;
 
     this.opts = {
       height: '360',
@@ -29,117 +35,125 @@ export default class YoutubePlayer extends Component {
         mute: 1,
         enablejsapi: 1,
         cc_load_policy: 0,
-        start: 61
+        start: 0
       },
     }
   }
 
   componentDidMount() {
-    this.props.socket.on('welcome', data => {
-      this.setState({roomID: data.roomID, clientID: data.clientID});
+    this.props.socket.on('join', data => {
+      console.log(data)
+      this.setState({roomID: data.roomID, clientID: data.clientID, isPlaying: data.videoIsPlaying, elapsed: data.videoElapsed});
       this.props.socket.clientID = data.clientID;
       new Ping(this.props.socket);
     })
 
-    this.props.socket.on('seekTo', sec => {
-      console.log(`SERVER SAYS SEEKTO ${sec} seconds!`);
-      this.seekToSec(sec);
+    this.props.socket.on('seekTo', ms => {
+      let sec = ms / 1000
+      this.seekTo(ms);
     });
 
-    this.props.socket.on('play', () => {
-      console.log('SERVER SAYS PLAY!')
+    this.props.socket.on('play', ms => {
       this.playVideo();
+      this.seekTo(ms);
     })
 
-    this.props.socket.on('pause', () => {
-      console.log('SERVER SAYS PAUSE!');
+    this.props.socket.on('pause', ms => {
       this.pauseVideo();
+      this.seekTo(ms);
     })
+  }
+
+  onVideoReady = (e) => {
+    this.setState({player: e.target});
+    this.sync = new Synchronizer(this.seekTo, e.target, this.timer);
+
+    if (this.state.isPlaying) {
+      this.playVideo();
+      this.seekTo(this.state.elapsed);
+    }
   }
   
   playVideoEmit = () => {
-    this.playVideo().then(() => {
-      this.props.socket.in(this.state.roomID).emit('play');
-    }).catch(err => console.log(err));
+    if (this.playVideo()) {
+      let currTimeMs = Math.floor(this.state.player.getCurrentTime() * 1000);
+      this.timer.seekTo(currTimeMs);
+      this.props.socket.in(this.state.roomID).emit('play', currTimeMs);
+    }
   }
 
   playVideo = () => {
-    let self = this;
     let player = this.state.player;
 
     if (player) {
+      console.log('PLAY')
       player.playVideo();
+      player.unMute();
+      this.timer.play();
+      this.sync.start();
+      this.lockProgressBar();
+      return true;
     }
 
-    return new Promise((resolve, reject) => {
-      poll(() => { return player.getPlayerState() === Youtube.PlayerState.PLAYING }, 1500, 1).then(() => {
-        player.unMute();
-        self.lockProgressBar();
-        return resolve();
-      }).catch(err => {console.log(err); return reject('Took too long to play')})
-    })
+    return false;
   }
 
   pauseVideoEmit = () => {
-    this.pauseVideo().then(() => {
-      this.props.socket.in(this.state.roomID).emit('pause');
-    }).catch(err => console.log(err));
+    if (this.pauseVideo()) {
+      let currTimeMs = Math.floor(this.state.player.getCurrentTime() * 1000);
+      this.timer.seekTo(currTimeMs);
+      this.props.socket.in(this.state.roomID).emit('pause', currTimeMs);
+    }
   }
   
   pauseVideo = () => {
-    let self = this;
     let player = this.state.player;
-
+    
     if (player) {
+      console.log('PAUSE')
       player.pauseVideo();
+      this.timer.pause();
+      this.sync.stop();
+      this.unlockProgressBar();
+      return true;
     }
 
-    return new Promise((resolve, reject) => {
-      poll(() => { return player.getPlayerState() === Youtube.PlayerState.PAUSED }, 1500, 1).then(() => {
-        self.unlockProgressBar();
-        return resolve();
-      }).catch(err => {console.log(err); return reject('Took too long to pause')})
-    })
+    return false;
   }
 
   lockProgressBar = () => {
-    if (!this.calcProgressInterval) {
+    if (this.calcProgressInterval == null) {
       this.calcProgressInterval = setInterval(() => this.calculateProgress(), 100);
     }
   }
 
   unlockProgressBar = () => {
-    if (this.calcProgressInterval) {
-      clearInterval(this.calcProgressInterval);
-      this.calcProgressInterval = null;
-    }
+    clearInterval(this.calcProgressInterval);
+    this.calcProgressInterval = null;
   }
-
-  onVideoReady = (e) => {
-    this.setState({player: e.target});
-  }
-
   changeProgress = (e) => {
     if (this.state.player) {
       this.setState({currVideoPercent: e.target.value});
     }
   }
 
-  percentToSec = (percent) => {
-    return (percent / 100) * this.state.player.getDuration();
+  percentToMs = (percent) => {
+    return (percent / 100) * this.state.player.getDuration() * 1000;
   }
 
-  seekToSec = (sec) => {
+  seekTo = (ms) => {
     if (this.state.player) {
-      this.state.player.seekTo(sec)
+      console.log(`Video seeked to ${ms / 1000} sec`)
+      this.state.player.seekTo(ms / 1000);
+      this.timer.seekTo(ms);
       return true;
     }
     return false;
   }
 
-  seekToSecEmit = (sec) => {
-    if (this.seekToSec(sec)) {
-      this.props.socket.in(this.state.roomID).emit('seekTo', sec);
+  seekToEmit = (ms) => {
+    if (this.seekTo(ms)) {
+      this.props.socket.in(this.state.roomID).emit('seekTo', ms);
     }
   }
 
@@ -173,7 +187,7 @@ export default class YoutubePlayer extends Component {
             <button onClick={this.playVideoEmit}>playy</button>
           }
           <div>
-            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoPercent} onChange={this.changeProgress} onMouseUp={(e) => {this.seekToSecEmit(this.percentToSec(e.target.value))}} onMouseDown={this.unlockProgressBar} step="0.1"/>
+            <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={this.state.currVideoPercent} onChange={this.changeProgress} onMouseUp={(e) => {this.seekToEmit(this.percentToMs(e.target.value)); this.lockProgressBar();}} onMouseDown={this.unlockProgressBar} step="0.1"/>
           </div>
         </div>
       </div>
