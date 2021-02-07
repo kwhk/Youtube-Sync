@@ -1,9 +1,12 @@
-package websocket 
+package websocket
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/kwhk/sync/api/server/utils/timer"
 )
 
 type Room struct {
@@ -13,10 +16,34 @@ type Room struct {
 	unregister chan *Client
 	clients map[uuid.UUID]*Client
 	messageQueue chan Message
+
+	// Video
+	video *video
+
 	// store ping for each client in ms
 	clientPing map[uuid.UUID]int
 	clientPingMeasure map[uuid.UUID][]int
 	clientLastPing map[uuid.UUID]time.Time
+}
+
+type video struct {
+	url string
+	name string
+	timer *timer.VideoTimer
+	isPlaying bool
+}
+
+// FOR TESTING
+func (v *video) elapsed() {
+	fmt.Println(v.timer.Elapsed())
+}
+
+type JoinData struct {
+	RoomID uuid.UUID `json:"roomID"`
+	ClientID uuid.UUID `json:"clientID"`
+	VideoURL string `json:"videoUrl"`
+	VideoElapsed int64 `json:"videoElapsed"`
+	VideoIsPlaying bool `json:"videoIsPlaying"`
 }
 
 func NewRoom() *Room {
@@ -27,13 +54,36 @@ func NewRoom() *Room {
 		unregister: make(chan *Client),
 		clients: make(map[uuid.UUID]*Client),
 		messageQueue: make(chan Message),
+		// for testing purposes
+		video: &video{
+			url: "0-q1KafFCLU", 
+			name: "IU Celebrity", 
+			timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, 
+			isPlaying: false,
+		},
 		clientPing: make(map[uuid.UUID]int),
 		clientPingMeasure: make(map[uuid.UUID][]int),
 		clientLastPing: make(map[uuid.UUID]time.Time),
+		
 	}
 }
 
 func (room *Room) Start() {
+	//// FOR TESTING SYNCING TIMES
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <- ticker.C:
+				room.video.elapsed()
+			case <- quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	////
 	for {
 		select {
 		case client := <-room.register:
@@ -44,13 +94,13 @@ func (room *Room) Start() {
 			room.clients[client.id] = client
 			room.clientPingMeasure[client.id] = make([]int, 10)
 			fmt.Println("Size of connection room: ", len(room.clients))
-			client.conn.WriteJSON(Message{ Action: "event", Event: Event{ Name: "welcome", Data: struct { RoomID uuid.UUID `json:"roomID"`; ClientID uuid.UUID `json:"clientID"`}{client.room.id, client.id}}})
+			client.conn.WriteJSON(Message{ Action: "event", Event: Event{ Name: "join", Data: JoinData{client.room.id, client.id, room.video.url, room.video.timer.Elapsed(), room.video.isPlaying}}})
 			for _, other := range room.clients {
 				if other != client {
 					other.conn.WriteJSON(Message{ Action: "message", Event: Event{Name: "Connect", Data: "New User Joined, ID: " + client.id.String()} })
 				}
 			}
-			break
+
 		case client := <-room.unregister:
 			if _, ok := room.clients[client.id]; ok {
 				delete(room.clients, client.id)
@@ -60,7 +110,6 @@ func (room *Room) Start() {
 			for _, client := range room.clients {
 				client.conn.WriteJSON(Message{ Action: "message", Event: Event{Name: "Disconnect", Data: "User Disconnected"} })
 			}
-			break
 		case message := <-room.messageQueue:
 			room.messageController(message);
 		}
@@ -70,7 +119,7 @@ func (room *Room) Start() {
 // messageController following front controller pattern.
 func (room *Room) messageController(message Message) {
 	eventName := message.Event.Name
-	newMessage := EventHandler(eventName, message, room)
+	newMessage := eventHandler(eventName, message, room)
 
 	if newMessage != nil {
 		room.dispatcher(*newMessage)
@@ -78,7 +127,6 @@ func (room *Room) messageController(message Message) {
 }
 
 func (room *Room) dispatcher(message Message) {
-	fmt.Printf("%+v\n", message)
 	// Dispatch message.
 	if message.Target != nil {
 		room.broadcast(message)

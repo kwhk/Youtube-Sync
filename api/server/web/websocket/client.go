@@ -52,7 +52,6 @@ func (c *Client) readPump() {
 		}
 		
 		// convert from JSON to Message struct.
-		fmt.Println(string(p))
 		msg, err := UnmarshalJSONMessage([]byte(string(p)))
 
 		if err != nil {
@@ -82,6 +81,7 @@ func (c *Client) writePump() {
 
 			if err := c.conn.WriteJSON(message); err != nil {
 				log.Printf("error: %v", err)
+				log.Printf("message: %+v\n", message)
 			}
 
 			// Add queued chat messages to the current websocket message.
@@ -101,7 +101,7 @@ func (c *Client) writePump() {
 
 func (c *Client) measurePing(msg Message) Message {
 	// MAX_PING must match clientPingMeasure array size
-	MAX_PING := 10
+	MAX_PING_NUM := 10
 
 	type Handshake struct {
 		// All caps represents whether ACK or SYN has been set
@@ -136,18 +136,18 @@ func (c *Client) measurePing(msg Message) Message {
 		}
 
 		// Calculate average after MAX_PING tries.
-		if hs["seq"].(int) >= MAX_PING{
+		if hs["seq"].(int) >= MAX_PING_NUM{
 			sum := 0
-			for i := 0; i < MAX_PING; i++ {
+			for i := 0; i < MAX_PING_NUM; i++ {
 				sum += c.room.clientPingMeasure[c.id][i]
 				// Reset array.
 				c.room.clientPingMeasure[c.id][i] = 0
 			}
 
 			// Divide sum by 2 because ping stored in clientPingMeasure measures latency for round trip and not one way.
-			c.room.clientPing[c.id] = (sum / 2) / MAX_PING
-			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{FIN: 1}}}
+			c.room.clientPing[c.id] = (sum / 2) / MAX_PING_NUM
 			fmt.Printf("Ping is %d ms\n", c.room.clientPing[c.id])
+			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{FIN: 1}}}
 		} else {
 			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{ACK: 1, Seq: hs["ack"].(int), Ack: hs["seq"].(int) + 1}}}
 		}
