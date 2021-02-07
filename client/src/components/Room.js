@@ -27,7 +27,7 @@ export default class Room extends Component {
     if (this.state.socket) {
       return (
         <div>
-          <YoutubePlayer currPlaying="r00ikilDxW4" socket={this.state.socket}/>
+          <YoutubePlayer currPlaying="0-q1KafFCLU" socket={this.state.socket}/>
           <Sandbox socket={this.state.socket}/>
         </div>
       )
