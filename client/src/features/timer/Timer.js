@@ -22,7 +22,6 @@ export default class VideoTimer {
     play() {
         this.start = new Date();
         this.stop = false;
-        let self = this;
         // if (this.interval == null) {
         //     this.interval = setInterval(() => {console.log(self.elapsed())}, 1000)
         // }

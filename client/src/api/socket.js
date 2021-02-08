@@ -1,17 +1,46 @@
 export default class Socket {
     constructor() {
-        this.socket = new WebSocket("ws://localhost:8000/api/ws");
+        this.socket = null;
         this.clientID = null;
+    }
 
-        this.socket.onclose = function(event) {
-            let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
-            console.log('Connection closed: ' + e);
-        }
-        
-        this.socket.onerror = function(event) {
-            let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
-            console.log('Connection error: ' + e);
-        }
+    connect() {
+        let self = this;
+
+        return new Promise(function(resolve, reject) {
+            let server = new WebSocket('ws://localhost:8000/api/ws');
+            server.onclose = function(event) {
+                let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
+                console.log('Connection closed: ' + e);
+            }
+            
+            server.onerror = function(err) {
+                let e = JSON.stringify(err, ["message", "arguments", "type", "name"]);
+                console.log('Connection error: ' + e);
+                reject(err);
+            }
+            server.onopen = function() {
+                self.socket = server;
+                resolve(server)
+            }
+        });
+    }
+
+    disconnect() {
+        let self = this;
+        return new Promise(function(resolve, reject) {
+            self.server.onclose = function(event) {
+                let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
+                console.log('Connection closed: ' + e);
+                resolve();
+            }
+
+            self.server.onerror = function(err) {
+                let e = JSON.stringify(err, ["message", "arguments", "type", "name"]);
+                console.log('Connection closed: ' + e);
+                reject(err);
+            }
+        })
     }
 
     on(eventName, cb) {

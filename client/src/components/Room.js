@@ -1,40 +1,43 @@
-import React, { Component } from 'react';
-import YoutubePlayer from './YoutubePlayer';
-import Sandbox from './Sandbox';
-import Socket from '../api/socket';
+import React, { useEffect, useState } from 'react'
+import YoutubePlayer from './YoutubePlayer'
+import VideoInput from '../features/videoQueue/VideoInput'
+import VideoQueue from '../features/videoQueue/VideoQueue'
+import Socket from '../api/socket'
+import SocketContext from '../context/socket'
+import './flex.css';
 
-export default class Room extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      socket: null,
-      currPlayingUrl: null
+export default function Room() {
+  const [socket, setSocket] = useState(null);
+  
+  useEffect(() => {
+    async function connect() {
+      const s = new Socket();
+      await s.connect()
+      setSocket(s)
     }
-  }
 
-  componentDidMount() {
-    this.setState({socket: new Socket()});
-  }
+    connect()
 
-  componentWillUnmount() {
-    if (this.state.socket) {
-      this.state.socket.close();
+    return async function closeSocket() {
+      await socket.disconnect()
     }
-  }
+  }, []);
 
-  render() {
-    // if socket is open and ready to communicate
-    if (this.state.socket) {
-      return (
-        <div>
-          <YoutubePlayer currPlaying="0-q1KafFCLU" socket={this.state.socket}/>
-          <Sandbox socket={this.state.socket}/>
+  if (socket != null) {
+    return (
+      <SocketContext.Provider value={socket}>
+        <div className="d-flex flex-row flex-wrap">
+          <YoutubePlayer currPlaying="0-q1KafFCLU"/>
+          <div className="d-flex flex-col">
+            <VideoInput/>
+            <VideoQueue/>
+          </div>
         </div>
-      )
-    } else {
-      return (
-        <div>Not connected</div>
-      )
-    }
+      </SocketContext.Provider>
+    )
+  } else {
+    return (
+      <div>Not connected</div>
+    )
   }
 }

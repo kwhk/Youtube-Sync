@@ -6,7 +6,7 @@ export default class Ping {
         this.initPing();
 
         socket.on('ping', res => {
-            if (res.FIN != 1) {
+            if (res.FIN !== 1) {
                 this.ping(res);
             }
         })

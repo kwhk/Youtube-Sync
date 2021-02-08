@@ -1,13 +1,15 @@
 import React, { Component } from 'react';
 import Youtube from 'react-youtube';
-import { poll } from '../api/poll';
 import Ping from '../api/ping';
-import VideoTimer from '../timer/Timer';
-import Synchronizer from '../sync/Synchronizer';
+import VideoTimer from '../features/timer/Timer';
+import Synchronizer from '../features/sync/Synchronizer';
+import SocketContext from '../context/socket'
 
 import './YoutubePlayer.css';
+import './flex.css';
 
 export default class YoutubePlayer extends Component {
+  static contextType = SocketContext;
   constructor(props) {
     super(props);
     this.state = {
@@ -22,7 +24,6 @@ export default class YoutubePlayer extends Component {
 
     this.timer = new VideoTimer(new Date(), 0)
     this.sync = null;
-
     this.opts = {
       height: '360',
       width: '640',
@@ -41,24 +42,24 @@ export default class YoutubePlayer extends Component {
   }
 
   componentDidMount() {
-    this.props.socket.on('join', data => {
+    let socket = this.context;
+    socket.on('join', data => {
       console.log(data)
       this.setState({roomID: data.roomID, clientID: data.clientID, isPlaying: data.videoIsPlaying, elapsed: data.videoElapsed});
-      this.props.socket.clientID = data.clientID;
-      new Ping(this.props.socket);
+      socket.clientID = data.clientID;
+      new Ping(socket);
     })
 
-    this.props.socket.on('seekTo', ms => {
-      let sec = ms / 1000
+    socket.on('seekTo', ms => {
       this.seekTo(ms);
     });
 
-    this.props.socket.on('play', ms => {
+    socket.on('play', ms => {
       this.playVideo();
       this.seekTo(ms);
     })
 
-    this.props.socket.on('pause', ms => {
+    socket.on('pause', ms => {
       this.pauseVideo();
       this.seekTo(ms);
     })
@@ -75,10 +76,11 @@ export default class YoutubePlayer extends Component {
   }
   
   playVideoEmit = () => {
+    let socket = this.context;
     if (this.playVideo()) {
       let currTimeMs = Math.floor(this.state.player.getCurrentTime() * 1000);
       this.timer.seekTo(currTimeMs);
-      this.props.socket.in(this.state.roomID).emit('play', currTimeMs);
+      socket.in(this.state.roomID).emit('play', currTimeMs);
     }
   }
 
@@ -99,10 +101,12 @@ export default class YoutubePlayer extends Component {
   }
 
   pauseVideoEmit = () => {
+    let socket = this.context;
+
     if (this.pauseVideo()) {
       let currTimeMs = Math.floor(this.state.player.getCurrentTime() * 1000);
       this.timer.seekTo(currTimeMs);
-      this.props.socket.in(this.state.roomID).emit('pause', currTimeMs);
+      socket.in(this.state.roomID).emit('pause', currTimeMs);
     }
   }
   
@@ -152,8 +156,10 @@ export default class YoutubePlayer extends Component {
   }
 
   seekToEmit = (ms) => {
+    let socket = this.context; 
+
     if (this.seekTo(ms)) {
-      this.props.socket.in(this.state.roomID).emit('seekTo', ms);
+      socket.in(this.state.roomID).emit('seekTo', ms);
     }
   }
 
@@ -173,14 +179,16 @@ export default class YoutubePlayer extends Component {
       case Youtube.PlayerState.PAUSED:
         this.setState({isPlaying: false});
         break
+      default:
+        break
     }
   }
 
   render() {
     return (
-      <div className="d-flex flex-col align-items-center">
+      <div className="flex flex-col">
         <Youtube videoId={this.props.currPlaying} opts={this.opts} onReady={this.onVideoReady} onStateChange={this.onStateChange}/>
-        <div className="d-flex flex-row justify-content-space-evenly width-100" style={{marginTop: "5px"}}>
+        <div className="d-flex flex-row justify-content-space-evenly" style={{marginTop: "5px"}}>
           { this.state.isPlaying ?
             <button onClick={this.pauseVideoEmit}>pause</button>
             :
@@ -193,6 +201,4 @@ export default class YoutubePlayer extends Component {
       </div>
     )
   }
-
-
 }
