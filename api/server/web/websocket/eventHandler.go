@@ -3,10 +3,10 @@
 package websocket
 
 type eventExecutor interface {
-	execute() *Message
+	execute() (Message, bool)
 }
 
-func eventHandler(event string, message Message, room *Room) *Message {
+func eventHandler(event string, message Message, room *Room) (Message, bool) {
 	var executor eventExecutor
 	switch event {
 	case "ping":
@@ -14,6 +14,8 @@ func eventHandler(event string, message Message, room *Room) *Message {
 	// host only events
 	case "play", "pause", "seekTo":
 		executor = playback{message, room, event}
+	case "addVideoQueue", "popVideoQueue", "emptyVideoQueue":
+		executor = videoQueue{message, room, event}
 	}
 
 	return executor.execute()

@@ -19,6 +19,7 @@ type Room struct {
 
 	// Video
 	video *video
+	videoQueue []video
 
 	// store ping for each client in ms
 	clientPing map[uuid.UUID]int
@@ -27,9 +28,13 @@ type Room struct {
 }
 
 type video struct {
+	// URL of video.
 	url string
-	name string
+	// Duration of video in ms.
+	duration int64
+	// Timer to record how much time elapsed since video start.
 	timer *timer.VideoTimer
+	// Status to notify joining users playback state.
 	isPlaying bool
 }
 
@@ -57,10 +62,10 @@ func NewRoom() *Room {
 		// for testing purposes
 		video: &video{
 			url: "0-q1KafFCLU", 
-			name: "IU Celebrity", 
 			timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, 
 			isPlaying: false,
 		},
+		videoQueue: make([]video, 0),
 		clientPing: make(map[uuid.UUID]int),
 		clientPingMeasure: make(map[uuid.UUID][]int),
 		clientLastPing: make(map[uuid.UUID]time.Time),
@@ -119,10 +124,10 @@ func (room *Room) Start() {
 // messageController following front controller pattern.
 func (room *Room) messageController(message Message) {
 	eventName := message.Event.Name
-	newMessage := eventHandler(eventName, message, room)
+	newMessage, ok := eventHandler(eventName, message, room)
 
-	if newMessage != nil {
-		room.dispatcher(*newMessage)
+	if ok {
+		room.dispatcher(newMessage)
 	}
 }
 

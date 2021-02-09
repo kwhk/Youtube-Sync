@@ -10,7 +10,7 @@ type playback struct {
 	action string
 }
 
-func (p playback) execute() *Message {
+func (p playback) execute() (Message, bool) {
 	switch p.action {
 	case "play":
 		return p.play()
@@ -19,26 +19,26 @@ func (p playback) execute() *Message {
 	case "seekTo":
 		return p.seekTo()
 	default:
-		return &p.message
+		return p.message, true
 	}
 }
 
-func (p playback) play() *Message {
+func (p playback) play() (Message, bool)  {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Play()
 	fmt.Printf("Play(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
 	p.room.video.isPlaying = true
-	return &p.message
+	return p.message, true
 }
 
-func (p playback) pause() *Message {
+func (p playback) pause() (Message, bool) {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Pause()
 	fmt.Printf("Pause(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
 	p.room.video.isPlaying = false
-	return &p.message
+	return p.message, true
 }
 
-func (p playback) seekTo() *Message {
+func (p playback) seekTo() (Message, bool) {
 	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64)))
 	fmt.Printf("SeekTo(), seek to second: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
-	return &p.message
+	return p.message, true
 }

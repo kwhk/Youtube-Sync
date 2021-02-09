@@ -9,14 +9,14 @@ type ping struct {
 	room *Room
 }
 
-func (p ping) execute() *Message {
+func (p ping) execute() (Message, bool) {
 	c := p.room.clients[*p.message.Source]
 	msg := p.message
 
 	// MAX_PING must match clientPingMeasure array size
 	MAX_PING_NUM := 10
 
-	type Handshake struct {
+	type HandshakeJSON struct {
 		// All caps represents whether ACK or SYN has been set
 		ACK int `json:"ACK"`
 		SYN int `json:"SYN"`
@@ -35,7 +35,7 @@ func (p ping) execute() *Message {
 
 	// If SYN bit is 1 and ACK bit has not been set been client, then this is the request for handshake with server.
 	if hs["SYN"] == 1 && hs["ACK"] == 0 {
-		newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{ACK: 1, SYN: 1, Seq: 0, Ack: hs["seq"].(int) + 1}}}
+		newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: HandshakeJSON{ACK: 1, SYN: 1, Seq: 0, Ack: hs["seq"].(int) + 1}}}
 		c.room.clientLastPing[c.id] = time.Now()
 	// If SYN bit and ACK bit have been set by client, then handshake is complete and is ready for ping measurements.
 	} else if hs["ACK"] == 1 {
@@ -60,11 +60,11 @@ func (p ping) execute() *Message {
 			// Divide sum by 2 because ping stored in clientPingMeasure measures latency for round trip and not one way.
 			c.room.clientPing[c.id] = (sum / 2) / MAX_PING_NUM
 			fmt.Printf("Ping is %d ms\n", c.room.clientPing[c.id])
-			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{FIN: 1}}}
+			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: HandshakeJSON{FIN: 1}}}
 		} else {
-			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: Handshake{ACK: 1, Seq: hs["ack"].(int), Ack: hs["seq"].(int) + 1}}}
+			newMsg = Message{ Action: "event", Source: &c.id, Event: Event{ Name: "ping", Data: HandshakeJSON{ACK: 1, Seq: hs["ack"].(int), Ack: hs["seq"].(int) + 1}}}
 		}
 	}
 
-	return &newMsg
+	return newMsg, true
 }
