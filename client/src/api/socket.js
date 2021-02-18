@@ -2,6 +2,7 @@ export default class Socket {
     constructor() {
         this.socket = null;
         this.clientID = null;
+        this.roomID = null;
     }
 
     connect() {
@@ -27,6 +28,7 @@ export default class Socket {
     }
 
     disconnect() {
+        console.log('I want to disconnect!')
         let self = this;
         return new Promise(function(resolve, reject) {
             self.server.onclose = function(event) {
@@ -57,12 +59,10 @@ export default class Socket {
     // data and callback parameters are optional
     // emit sends to all clients except sender
     emit(eventName, data, cb) {
-        let target = {includeSender: false}
+        let target = null
 
-        if (this._roomID) {
-            target.roomID = this._roomID;
-        } else if (this._userID) {
-            target.userID = this._userID;
+        if (this._includeSender != null) {
+            target = {roomID: this.roomID, includeSender: this._includeSender}
         }
 
         let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
@@ -79,41 +79,18 @@ export default class Socket {
     }
 
     reset() {
-        this._roomID = null;
-        this._userID = null;
+        this._includeSender = null;
     }
 
-    // broadcasts sends to all clients including sender
-    broadcast(eventName, data, cb) {
-        let target = {includeSender: true}
-        
-        if (this._roomID) {
-            target.roomID = this._roomID;
-        } else if (this._userID) {
-            target.userID = this._userID;
-        }
-        
-        let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
-
-        if (data != null) {
-            obj.event.data = data;
-        }
-
-        this.socket.send(JSON.stringify(obj));
-
-        this.reset();
-
-        if (cb && typeof(cb) === "function") cb();
-    }
-
-    // Sends to RoomID
-    in(roomID) {
-        this._roomID = roomID;
+    // Sends to all clients in room including sender
+    in() {
+        this._includeSender = true;
         return this;
     }
 
-    to(userID) {
-        this._userID = userID;
+    // Sends to all clients in room except sender
+    to() {
+        this._includeSender = false;
         return this;
     }
 }

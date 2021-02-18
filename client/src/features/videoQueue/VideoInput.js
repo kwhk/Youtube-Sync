@@ -1,42 +1,19 @@
 import React, { useState, useContext } from 'react';
-import { push } from './videoQueueSlice';
-import { useDispatch } from 'react-redux';
 import SocketContext from '../../context/socket';
-import YoutubeAPI from '../../api/youtube';
-import moment from 'moment';
+import { getYoutubeVideo } from './utils';
 
 export default function VideoInput(props) {
-    const dispatch = useDispatch()
     const [id, setId] = useState('');
     const socket = useContext(SocketContext);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (id == "") return;
-
-        const res = await YoutubeAPI.get("/videos", {
-            params: {
-                id: id
-            }
-        });
-
-        const data = res.data.items[0];
-        const duration = moment.duration(data.contentDetails.duration).asMilliseconds();
-        
-        socket.emit('addVideoQueue', {
-            duration: duration,
+        if (id === "") return;
+        const videoInfo = await getYoutubeVideo(id);
+        socket.in().emit('addVideoQueue', {
+            duration: videoInfo.duration,
             url: id
         })
-
-        let videoInfo = {
-            title: data.snippet.title,
-            thumbnail: data.snippet.thumbnails.standard,
-            duration: duration,
-            channelTitle: data.snippet.channelTitle
-        }
-
-        dispatch(push(videoInfo));
         setId('');
     }
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import './App.css';
-import './components/YoutubePlayer';
-import Room from './components/Room';
+import Room from './features/room/Room';
 
 function App() {
   return (
