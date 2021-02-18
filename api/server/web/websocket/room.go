@@ -3,6 +3,7 @@ package websocket
 import (
 	"fmt"
 	"time"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -18,13 +19,18 @@ type Room struct {
 	messageQueue chan Message
 
 	// Video
-	video *video
-	videoQueue []video
+	video videoDetails
 
 	// store ping for each client in ms
 	clientPing map[uuid.UUID]int
 	clientPingMeasure map[uuid.UUID][]int
 	clientLastPing map[uuid.UUID]time.Time
+}
+
+type videoDetails struct {
+	curr video
+	queue []video
+	mu sync.Mutex
 }
 
 type video struct {
@@ -49,6 +55,7 @@ type JoinData struct {
 	VideoURL string `json:"videoUrl"`
 	VideoElapsed int64 `json:"videoElapsed"`
 	VideoIsPlaying bool `json:"videoIsPlaying"`
+	VideoQueue []video `json:"videoQueue"`
 }
 
 func NewRoom() *Room {
@@ -59,13 +66,12 @@ func NewRoom() *Room {
 		unregister: make(chan *Client),
 		clients: make(map[uuid.UUID]*Client),
 		messageQueue: make(chan Message),
-		// for testing purposes
-		video: &video{
-			url: "0-q1KafFCLU", 
-			timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, 
-			isPlaying: false,
+		video: videoDetails{
+			curr: video{
+				timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, 
+			},
+			queue: make([]video, 0),
 		},
-		videoQueue: make([]video, 0),
 		clientPing: make(map[uuid.UUID]int),
 		clientPingMeasure: make(map[uuid.UUID][]int),
 		clientLastPing: make(map[uuid.UUID]time.Time),
@@ -75,19 +81,19 @@ func NewRoom() *Room {
 
 func (room *Room) Start() {
 	//// FOR TESTING SYNCING TIMES
-	ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <- ticker.C:
-				room.video.elapsed()
-			case <- quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
+	// ticker := time.NewTicker(1 * time.Second)
+	// quit := make(chan struct{})
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <- ticker.C:
+	// 			room.video.elapsed()
+	// 		case <- quit:
+	// 			ticker.Stop()
+	// 			return
+	// 		}
+	// 	}
+	// }()
 	////
 	for {
 		select {
@@ -99,7 +105,7 @@ func (room *Room) Start() {
 			room.clients[client.id] = client
 			room.clientPingMeasure[client.id] = make([]int, 10)
 			fmt.Println("Size of connection room: ", len(room.clients))
-			client.conn.WriteJSON(Message{ Action: "event", Event: Event{ Name: "join", Data: JoinData{client.room.id, client.id, room.video.url, room.video.timer.Elapsed(), room.video.isPlaying}}})
+			client.conn.WriteJSON(Message{ Action: "event", Event: Event{ Name: "join", Data: JoinData{client.room.id, client.id, room.video.curr.url, room.video.curr.timer.Elapsed(), room.video.curr.isPlaying, room.video.queue}}})
 			for _, other := range room.clients {
 				if other != client {
 					other.conn.WriteJSON(Message{ Action: "message", Event: Event{Name: "Connect", Data: "New User Joined, ID: " + client.id.String()} })
