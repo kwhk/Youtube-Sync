@@ -24,21 +24,21 @@ func (p playback) execute() (Message, bool) {
 }
 
 func (p playback) play() (Message, bool)  {
-	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Play()
-	fmt.Printf("Play(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
-	p.room.video.isPlaying = true
+	p.room.video.curr.timer.SeekTo(int64(p.message.Event.Data.(float64))).Play()
+	fmt.Printf("Play(), seconds elapsed: %2f\n", float64(p.room.video.curr.timer.Elapsed()) / 1000.0)
+	p.room.video.curr.isPlaying = true
 	return p.message, true
 }
 
 func (p playback) pause() (Message, bool) {
-	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64))).Pause()
-	fmt.Printf("Pause(), seconds elapsed: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
-	p.room.video.isPlaying = false
+	p.room.video.curr.timer.SeekTo(int64(p.message.Event.Data.(float64))).Pause()
+	fmt.Printf("Pause(), seconds elapsed: %2f\n", float64(p.room.video.curr.timer.Elapsed()) / 1000.0)
+	p.room.video.curr.isPlaying = false
 	return p.message, true
 }
 
 func (p playback) seekTo() (Message, bool) {
-	p.room.video.timer.SeekTo(int64(p.message.Event.Data.(float64)))
-	fmt.Printf("SeekTo(), seek to second: %2f\n", float64(p.room.video.timer.Elapsed()) / 1000.0)
+	p.room.video.curr.timer.SeekTo(int64(p.message.Event.Data.(float64)))
+	fmt.Printf("SeekTo(), seek to second: %2f\n", float64(p.room.video.curr.timer.Elapsed()) / 1000.0)
 	return p.message, true
 }

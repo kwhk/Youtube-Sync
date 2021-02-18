@@ -50,7 +50,6 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		
 		// convert from JSON to Message struct.
 		msg, err := UnmarshalJSONMessage([]byte(string(p)))
 
