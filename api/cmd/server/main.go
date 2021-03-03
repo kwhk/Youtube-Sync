@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
-	"net/http"
-	"context"
 	"time"
 
-	"github.com/kwhk/sync/api/server/routes"
+	"github.com/kwhk/sync/api/config"
+	"github.com/kwhk/sync/api/repository"
+	"github.com/kwhk/sync/api/routes"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -42,19 +45,27 @@ func initWebServer(router http.Handler) {
 	//
 	<-c
 
-	// Attempt a graceful shutdon
+	// Attempt a graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	srv.Shutdown(ctx)
 }
 
 func main() {
+	config.CreateRedisClient()
+	db := config.ConnectToDB()
+	defer db.Close()
+	
+	userRepo := &repository.UserRepository{DB: db}
+	roomRepo := &repository.RoomRepository{DB: db}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Mount("/api", routes.IndexRouter())
+	r.Mount("/api", routes.IndexRouter(userRepo, roomRepo))
+
 	initWebServer(r)
 }

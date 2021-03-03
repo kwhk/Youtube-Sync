@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"github.com/gorilla/websocket"
-	"github.com/google/uuid"
 )
 
 var upgrader = websocket.Upgrader{
@@ -25,24 +24,19 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 }
 
 // ServeWs defines our WebSocket endpoint
-func ServeWs(room *Room, w http.ResponseWriter, r *http.Request) {
+func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrade(w, r)
 	if err != nil {
 		fmt.Fprintf(w, "%+V\n", err)
 	}
 
-	client := &Client {
-		id: uuid.New(),
-		conn: conn,
-		room: room,
-		send: make(chan Message, 256),
-	}
-
-	client.room.register <- client
+	client := initClient(conn, wsServer)
 
 	// Allow connection of memory referenced by the caller by doing
 	// all work in new goroutines.
 	go client.writePump()
 	go client.readPump()
+
+	wsServer.register <- client
 }
 
