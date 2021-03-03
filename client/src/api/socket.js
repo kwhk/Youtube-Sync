@@ -1,7 +1,8 @@
+import assert from 'assert'
+
 export default class Socket {
     constructor() {
         this.socket = null;
-        this.clientID = null;
         this.roomID = null;
     }
 
@@ -20,6 +21,7 @@ export default class Socket {
                 console.log('Connection error: ' + e);
                 reject(err);
             }
+
             server.onopen = function() {
                 self.socket = server;
                 resolve(server)
@@ -47,50 +49,37 @@ export default class Socket {
 
     on(eventName, cb) {
         this.socket.addEventListener("message", res => {
+            if (!res.data) {
+                return
+            }
             let data = JSON.parse(res.data);
-            if (data.action === "event" && data.event.name && (data.event.name === eventName)) {
-                cb(data.event.data);
+            if (data.action && (data.action === eventName)) {
+                cb(data.data);
             }
         })
 
         return this;
     }
     
-    // data and callback parameters are optional
-    // emit sends to all clients except sender
+    // emit sends messages to server only
     emit(eventName, data, cb) {
-        let target = null
-
-        if (this._includeSender != null) {
-            target = {roomID: this.roomID, includeSender: this._includeSender}
-        }
-
-        let obj = {action: "event", sourceClientID: this.clientID, target, event: {name: eventName}};
-
+        let obj = {action: eventName, target: null}
         if (data != null) {
-            obj.event.data = data;
+            obj.data = data
         }
-
-        this.socket.send(JSON.stringify(obj));
-
-        this.reset();
-
-        if (cb && typeof(cb) === "function") cb();
+        this.socket.send(JSON.stringify(obj))
+        if (cb && typeof(cb) === "function") cb()
     }
 
-    reset() {
-        this._includeSender = null;
-    }
-
-    // Sends to all clients in room including sender
-    in() {
-        this._includeSender = true;
-        return this;
-    }
-
-    // Sends to all clients in room except sender
-    to() {
-        this._includeSender = false;
-        return this;
+    // broadcast sends messages to room only
+    broadcast(eventName, data, cb) {
+        assert(this.roomID != null)
+        let target = {roomID: this.roomID}
+        let obj = {action: eventName, target}
+        if (data != null) {
+            obj.data = data
+        }
+        this.socket.send(JSON.stringify(obj))
+        if (cb && typeof(cb) === "function") cb()
     }
 }

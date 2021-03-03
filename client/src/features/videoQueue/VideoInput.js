@@ -10,7 +10,7 @@ export default function VideoInput(props) {
         e.preventDefault();
         if (id === "") return;
         const videoInfo = await getYoutubeVideo(id);
-        socket.in().emit('addVideoQueue', {
+        socket.broadcast('add-video-queue', {
             duration: videoInfo.duration,
             url: id
         })

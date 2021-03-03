@@ -9,11 +9,11 @@ export default function Video(props) {
     let bgColor = 'rgba(1, 1, 1, 0)'
 
     const handlePlay = () => {
-        socket.in().emit('playVideoQueue', {url: props.url, index: props.index})
+        socket.broadcast('play-video-queue', {url: props.url, index: props.index})
     }
 
     const handleRemove = () => {
-        socket.in().emit('removeVideoQueue', {url: props.url, index: props.index})
+        socket.broadcast('remove-video-queue', {url: props.url, index: props.index})
     }
     
     if (props.active) {

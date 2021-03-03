@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux'
 import socketContext from '../../context/socket'
-import { selectCurrVideo, setPlaybackStatus } from '../currVideo/currVideoSlice'
+import { selectCurrVideo, setCurrVideoPlaybackStatus } from '../currVideo/currVideoSlice'
 import VideoTimer from '../timer/Timer';
 import Synchronizer from '../sync/Synchronizer';
 import './YoutubePlayer.css';
@@ -12,7 +12,7 @@ import ProgressBar from './ProgressBar'
 BUGS :
 
 sync isn't great esp when new client joins
-clients disconnect from socket more frequently now (caused by TCP error FIND THE ISSUE)
+clients disconnect from: socket more frequently now (caused by TCP error FIND THE ISSUE)
 seek control is buggy
 
 */
@@ -35,7 +35,7 @@ export default function Controls(props) {
         playVideo()
         let currTimeMs = Math.floor(props.player.getCurrentTime() * 1000);
         timer.seekTo(currTimeMs);
-        socket.to().emit('play', currTimeMs);
+        socket.broadcast('', currTimeMs);
     }
 
     const playVideo = () => {
@@ -44,14 +44,14 @@ export default function Controls(props) {
         props.player.unMute();
         timer.play();
         sync.start();
-        dispatch(setPlaybackStatus(true))
+        dispatch(setCurrVideoPlaybackStatus(true))
     }
 
     const pauseVideoEmit = () => {
         pauseVideo()
         let currTimeMs = Math.floor(props.player.getCurrentTime() * 1000);
         timer.seekTo(currTimeMs);
-        socket.to().emit('pause', currTimeMs);
+        socket.broadcast('pause-video', currTimeMs);
     }
     
     const pauseVideo = () => {
@@ -59,12 +59,12 @@ export default function Controls(props) {
         props.player.pauseVideo();
         timer.pause();
         sync.stop();
-        dispatch(setPlaybackStatus(false))
+        dispatch(setCurrVideoPlaybackStatus(false))
     }
 
     const seekToEmit = (ms) => {
         seekTo(ms)
-        socket.to().emit('seekTo', ms);
+        socket.broadcast('seekto-video', ms);
     }
     
     useEffect(() => {

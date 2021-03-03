@@ -5,7 +5,7 @@ export default class Ping {
 
         this.initPing();
 
-        socket.on('ping', res => {
+        socket.on('user-ping', res => {
             if (res.FIN !== 1) {
                 this.ping(res);
             }
@@ -20,7 +20,7 @@ export default class Ping {
             seq: 0,
             ack: 0
         }
-        this.socket.emit('ping', data);
+        this.socket.emit('user-ping', data);
     }
 
     ping(res) {
@@ -34,7 +34,7 @@ export default class Ping {
             ack: res.seq + 1
         }
 
-        this.socket.emit('ping', data)
+        this.socket.emit('user-ping', data)
     }
 }
 
