@@ -40,13 +40,13 @@ type videoDetails struct {
 
 type Video struct {
 	// URL of video.
-	URL string
+	URL string `json:"url"`
 	// Duration of video in ms.
-	Duration int64
+	Duration int64 `json:"-"`
 	// Timer to record how much time elapsed since video start.
-	Timer *timer.VideoTimer
+	Timer *timer.VideoTimer `json:"-"`
 	// Status to notify joining users playback state.
-	IsPlaying bool
+	IsPlaying bool `json:"isPlaying"`
 }
 
 // FOR TESTING
@@ -156,9 +156,8 @@ func (room *Room) subscribeToRoomMessages() {
 			log.Printf("Error on unmarshal JSON message %s", err)
 			return
 		}
-		if msg, ok := room.eventHandler(msg); ok {
-			room.broadcastToClients(msg)
-		}
+
+		room.broadcastToClients(msg)
 	}
 }
 
@@ -174,7 +173,7 @@ func (room *Room) eventHandler(message Message) (Message, bool) {
 	case JoinRoomAction, LeaveRoomAction:
 		return message, true
 	default:
-		fmt.Printf("Room eventHandler does not recognize event '%s'.\n", action)
+		fmt.Printf("Room eventHandler does not recognize event %s.\n", action)
 		return Message{}, false
 	}
 
