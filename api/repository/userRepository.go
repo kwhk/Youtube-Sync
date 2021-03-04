@@ -9,6 +9,7 @@ import (
 type User struct {
 	ID string
 	Name string
+	RoomID string `pg:"room_id"`
 	tableName struct{} `pg:"users"`
 }
 
@@ -35,7 +36,7 @@ func (repo *UserRepository) AddUser(user models.User) {
 	}
 }
 
-func (repo *UserRepository) RemoveUser(user models.User) {
+func (repo *UserRepository) DeleteUser(user models.User) {
 	temp := &User{
 		ID: user.GetID(),
 	}
@@ -45,7 +46,7 @@ func (repo *UserRepository) RemoveUser(user models.User) {
 	}
 }
 
-func (repo *UserRepository) FindUserById(ID string) models.User {
+func (repo *UserRepository) FindUserByID(ID string) models.User {
 	temp := &User{
 		ID: ID,
 	}
@@ -73,3 +74,17 @@ func (repo *UserRepository) GetAllUsers() []models.User {
 
 	return data
 }
+
+func (repo *UserRepository) JoinRoom(user models.User, room models.Room) {
+	temp := &User{
+		ID: user.GetID(),
+		RoomID: room.GetID(),
+	}
+
+	_, err := repo.DB.Model(temp).Set("room_id = ?room_id").Where("id = ?id").Update()
+
+	if err != nil {
+		log.Println(err)
+		log.Printf("Failed to join user %s to room %s\n", user.GetID(), room.GetID())
+	}
+}	

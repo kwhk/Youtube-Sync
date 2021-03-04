@@ -7,7 +7,8 @@ type User interface {
 
 type UserRepository interface {
 	AddUser(user User)
-	RemoveUser(user User)
-	FindUserById(ID string) User
+	DeleteUser(user User)
+	FindUserByID(ID string) User
 	GetAllUsers() []User
+	JoinRoom(user User, room Room)
 }

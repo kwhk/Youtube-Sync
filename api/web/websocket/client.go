@@ -247,6 +247,7 @@ func (client *Client) joinRoom(roomID uuid.UUID, sender models.User) *Room {
 
 	// Check if user has already joined this room.
 	if !client.isInRoom(room) {
+		client.wsServer.userRepository.JoinRoom(client, room)
 		client.room = room
 		room.register <- client
 		// client.notifyRoomJoined(room, sender)
