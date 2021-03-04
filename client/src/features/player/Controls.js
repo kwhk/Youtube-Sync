@@ -32,10 +32,10 @@ export default function Controls(props) {
     const [sync] = useState(new Synchronizer(seekTo, props.player, timer))
     
     const playVideoEmit = () => {
-        playVideo()
+        // playVideo()
         let currTimeMs = Math.floor(props.player.getCurrentTime() * 1000);
         timer.seekTo(currTimeMs);
-        socket.broadcast('', currTimeMs);
+        socket.broadcast('play-video', currTimeMs);
     }
 
     const playVideo = () => {
@@ -48,7 +48,7 @@ export default function Controls(props) {
     }
 
     const pauseVideoEmit = () => {
-        pauseVideo()
+        // pauseVideo()
         let currTimeMs = Math.floor(props.player.getCurrentTime() * 1000);
         timer.seekTo(currTimeMs);
         socket.broadcast('pause-video', currTimeMs);
@@ -63,21 +63,21 @@ export default function Controls(props) {
     }
 
     const seekToEmit = (ms) => {
-        seekTo(ms)
+        // seekTo(ms)
         socket.broadcast('seekto-video', ms);
     }
     
     useEffect(() => {
-        socket.on('seekTo', ms => {
+        socket.on('seekto-video', ms => {
             seekTo(ms);
         });
 
-        socket.on('play', ms => {
+        socket.on('play-video', ms => {
             playVideo();
             seekTo(ms);
         })
 
-        socket.on('pause', ms => {
+        socket.on('pause-video', ms => {
             pauseVideo();
             seekTo(ms);
         })

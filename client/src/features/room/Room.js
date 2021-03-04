@@ -4,6 +4,7 @@ import VideoInput from '../videoQueue/VideoInput'
 import VideoQueue from '../videoQueue/VideoQueue'
 import { useDispatch } from 'react-redux'
 import { setCurrVideoElapsed, setCurrVideoUrl, setCurrVideoPlaybackStatus } from '../currVideo/currVideoSlice' 
+import { setVideoQueue }  from '../videoQueue/videoQueueSlice'
 import Socket from '../../api/socket'
 import SocketContext from '../../context/socket'
 import '../../styles/flex.css'
@@ -75,7 +76,7 @@ export default function Room(props) {
 			dispatch(setCurrVideoElapsed(data.currVideo.elapsed))
 			dispatch(setCurrVideoPlaybackStatus(data.currVideo.isPlaying))
 			dispatch(setConnectedUsers(data.connectedUsers))
-			socket.roomID = data.roomID;
+			dispatch(setVideoQueue(data.videoQueue))
 			new Ping(socket);
 			setRender(true)
 			console.log(data)

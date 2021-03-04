@@ -3,7 +3,6 @@ import assert from 'assert'
 export default class Socket {
     constructor() {
         this.socket = null;
-        this.roomID = null;
     }
 
     connect() {
@@ -73,9 +72,7 @@ export default class Socket {
 
     // broadcast sends messages to room only
     broadcast(eventName, data, cb) {
-        assert(this.roomID != null)
-        let target = {roomID: this.roomID}
-        let obj = {action: eventName, target}
+        let obj = {action: eventName, target: null}
         if (data != null) {
             obj.data = data
         }

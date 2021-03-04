@@ -14,9 +14,7 @@ export default function VideoQueue() {
 
     useEffect(() => {
         socket.on('add-video-queue', async (data) => {
-            let videoInfo = await getYoutubeVideo(data.url)
-            videoInfo.active = false
-            dispatch(pushVideo(videoInfo))
+            dispatch(pushVideo(data.url))
         })
 
         socket.on('remove-video-queue', data => {
