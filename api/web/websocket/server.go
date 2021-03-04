@@ -68,7 +68,7 @@ func (server *WsServer) unregisterClient(client *Client) {
 		delete(server.clients, client.GetID())
 
 		// Remove user from repo
-		server.userRepository.RemoveUser(client)
+		server.userRepository.DeleteUser(client)
 
 		// Publish user left in pub/sub
 		server.publishClientLeft(client)
