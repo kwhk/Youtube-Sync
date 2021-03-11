@@ -56,7 +56,6 @@ export function setVideoQueue(queue) {
     return async function setVideoQueueThunk(dispatch, getState) {
         let newQueue = []
         for (const video of queue) {
-            console.log(video)
             let videoInfo = await getYoutubeVideo(video.url)
             videoInfo.active = video.isPlaying
             newQueue.push(videoInfo)

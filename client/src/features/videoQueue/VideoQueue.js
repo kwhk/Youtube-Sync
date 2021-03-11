@@ -28,8 +28,9 @@ export default function VideoQueue() {
     }, [])
 
     return (
-        <ul>
-            {queue.map((video, index) => <li key={index}><Video {...video} index={index}/></li>)}
-        </ul>
+        <div>
+            <h1 className="text-white text-2xl font-bold">Up next</h1>
+            {queue.map((video, index) =>  <Video key={index} {...video} index={index}/>)}
+        </div>
     )
 }
