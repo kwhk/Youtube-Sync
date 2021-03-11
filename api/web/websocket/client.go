@@ -7,9 +7,12 @@ import (
 	"log"
 	"time"
 	"encoding/json"
+	"sync"
 
 	"github.com/kwhk/sync/api/models"
 )
+
+var clientWg sync.WaitGroup
 
 // Client struct for identifying individual socket connection
 type Client struct {
@@ -88,11 +91,11 @@ func (client *Client) readPump() {
 		var message Message
 		if err := json.Unmarshal(p, &message); err != nil {
 			log.Printf("Error on unmarshal JSON message %s", err)
-			return
+			continue
 		}
 
 		message.Sender = client
-		client.eventHandler(message)
+		client.wsServer.workerPool.AddJob(func() {client.eventHandler(message)})
 	}
 }
 
@@ -112,7 +115,6 @@ func (client *Client) writePump() {
 				client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 
 			w, err := client.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
@@ -182,13 +184,57 @@ func (client *Client) handleJoinRoom(message Message) {
 		return
 	}
 	
+	client.notifyRoomJoined(room)
+}
+
+func (client *Client) handleLeaveRoom() {
+	room := client.room
+	
+	if room == nil {
+		return
+	}
+	
+	room.unregister <- client
+	client.room = nil
+}
+
+func (client *Client) joinRoom(roomID uuid.UUID, sender models.User) *Room {
+	room := client.wsServer.findRoomByID(roomID)
+
+	if room == nil {
+		log.Printf("RoomID %s not found.\n", roomID.String())
+		return nil
+	}
+
+	if sender == nil && room.Private {
+		return nil
+	}
+
+	// Check if user has already joined this room.
+	if !client.isInRoom(room) {
+		client.wsServer.userRepository.JoinRoom(client, room)
+		client.room = room
+		room.register <- client
+		// client.notifyRoomJoined(room, sender)
+	}
+
+	return room
+}
+
+func (client *Client) isInRoom(room *Room) bool {
+	return client.room == room
+}
+
+// Notify client that they have successfully joined room
+func (client *Client) notifyRoomJoined(room *Room) {	
 	clients := []string{}
 	for id := range room.Clients {
 		clients = append(clients, id)
 	}
-	
+
 	var joinMsg Message = Message{ 
 		Action: RoomWelcomeAction,
+		Sender: client,
 		Data: struct {
 			VideoQueue []Video `json:"videoQueue"`
 			ConnectedUsers []string `json:"connectedUsers"`
@@ -215,61 +261,6 @@ func (client *Client) handleJoinRoom(message Message) {
 
 	client.send <- joinMsg.encode()
 }
-
-func (client *Client) handleLeaveRoom() {
-	fmt.Println("handleLeaveRoom")
-	room := client.room
-	if room == nil {
-		fmt.Println("client room is nil")
-		return
-	}
-
-	room.unregister <- client
-	client.room = nil
-
-	// BELOW CODE DOESN'T WORK: because room.unregister is a channel and is non-blocking, so len(room.Clients) will still be 1
-	// even after the final user has left. May need to consider having a check 
-	// if len(room.Clients) == 0 {
-	// 	client.wsServer.deleteRoom(client.room)
-	// }
-}
-
-func (client *Client) joinRoom(roomID uuid.UUID, sender models.User) *Room {
-	room := client.wsServer.findRoomByID(roomID)
-	if room == nil {
-		log.Printf("RoomID %s not found.\n", roomID.String())
-		return nil
-	}
-
-	if sender == nil && room.Private {
-		return nil
-	}
-
-	// Check if user has already joined this room.
-	if !client.isInRoom(room) {
-		client.wsServer.userRepository.JoinRoom(client, room)
-		client.room = room
-		room.register <- client
-		// client.notifyRoomJoined(room, sender)
-	}
-
-	return room
-}
-
-func (client *Client) isInRoom(room *Room) bool {
-	return client.room == room
-}
-
-// Notify client that they have successfully joined room
-// func (client *Client) notifyRoomJoined(room *Room, sender models.User) {
-// 	message := Message{
-// 		Action: JoinRoomAction,
-// 		Target: room,
-// 		Sender: sender,
-// 	}
-
-// 	client.send <- message.encode()
-// }
 
 func (client *Client) GetID() string {
 	return client.ID.String()

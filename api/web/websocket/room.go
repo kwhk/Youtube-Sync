@@ -21,6 +21,7 @@ type Room struct {
 	Name string `json:"name"`
 	Private bool `json:"private"`
 
+	wsServer *WsServer
 	register chan *Client `json:"-"`
 	unregister chan *Client `json:"-"`
 	Clients map[string]*Client `json:"-"`
@@ -55,11 +56,12 @@ func (v *Video) elapsed() {
 }
 
 
-func NewRoom(name string, private bool) *Room {
+func NewRoom(name string, private bool, server *WsServer) *Room {
 	return &Room {
 		ID: uuid.New(),
 		Name: name,
 		Private: private,
+		wsServer: server,
 		register: make(chan *Client),
 		unregister: make(chan *Client),
 		Clients: make(map[string]*Client),
@@ -73,19 +75,17 @@ func NewRoom(name string, private bool) *Room {
 	}
 }
 
-func (room *Room) Start() {
+func (room *Room) Run() {
 	go room.subscribeToRoomMessages()
 
 	for {
 		select {
 		case client := <-room.register:
-			room.registerClientInRoom(client)
+			room.wsServer.workerPool.AddJob(func() {room.registerClientInRoom(client)})
 		case client := <-room.unregister:
-			room.unregisterClientInRoom(client)
+			room.wsServer.workerPool.AddJob(func() {room.unregisterClientInRoom(client)})
 		case message := <-room.broadcast:
-			if msg, ok := room.eventHandler(message); ok {
-				room.publishRoomMessage(msg.encode())
-			}
+			room.wsServer.workerPool.AddJob(func() {room.eventHandler(message)})
 		}
 	}
 }
@@ -161,7 +161,7 @@ func (room *Room) subscribeToRoomMessages() {
 	}
 }
 
-func (room *Room) eventHandler(message Message) (Message, bool) {
+func (room *Room) eventHandler(message Message) {
 	var h handler
 	action := message.Action
 	switch action {
@@ -171,13 +171,15 @@ func (room *Room) eventHandler(message Message) (Message, bool) {
 	case PlayVideoQueueAction, AddVideoQueueAction, RemoveVideoQueueAction, EmptyVideoQueueAction:
 		h = videoQueue{message, room, action}
 	case JoinRoomAction, LeaveRoomAction:
-		return message, true
+		break
 	default:
-		fmt.Printf("Room eventHandler does not recognize event %s.\n", action)
-		return Message{}, false
+		log.Printf("Room eventHandler does not recognize event %s.\n", action)
+		return
 	}
 
-	return h.handle()
+	if msg, ok := h.handle(); ok {
+		room.publishRoomMessage(msg.encode())
+	}
 }
 
 func (room *Room) GetID() string {

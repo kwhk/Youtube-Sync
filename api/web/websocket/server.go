@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
+	wp "github.com/kwhk/sync/api/utils/workerPool"
+
 	"github.com/google/uuid"
 	"github.com/kwhk/sync/api/config"
 	"github.com/kwhk/sync/api/models"
@@ -18,6 +20,7 @@ type WsServer struct {
 	unregister chan *Client
 	emit chan Message
 	rooms map[uuid.UUID]*Room
+	workerPool *wp.Pool
 	roomRepository models.RoomRepository
 	userRepository models.UserRepository
 }
@@ -31,6 +34,7 @@ func NewWebsocketServer(roomRepo models.RoomRepository, userRepo models.UserRepo
 		rooms: make(map[uuid.UUID]*Room),
 		roomRepository: roomRepo,
 		userRepository: userRepo,
+		workerPool: wp.NewPool(10),
 	}
 
 	wsServer.users = userRepo.GetAllUsers()
@@ -40,15 +44,16 @@ func NewWebsocketServer(roomRepo models.RoomRepository, userRepo models.UserRepo
 
 func (server *WsServer) Run() {
 	go server.listenPubSubChannel()
+	go server.workerPool.Run()
 
 	for {
 		select {
 		case client := <-server.register:
-			server.registerClient(client)	
+			server.workerPool.AddJob(func() {server.registerClient(client)})
 		case client := <-server.unregister:
-			server.unregisterClient(client)
+			server.workerPool.AddJob(func() {server.unregisterClient(client)})
 		case message := <-server.emit:
-			server.eventHandler(message)
+			server.workerPool.AddJob(func() {server.eventHandler(message)})
 		}
 	}
 }
@@ -174,10 +179,10 @@ func (server *WsServer) findUserByID(ID uuid.UUID) models.User {
 }
 
 func (server *WsServer) createRoom(name string, private bool) *Room {
-	room := NewRoom(name, private)
+	room := NewRoom(name, private, server)
 	server.roomRepository.AddRoom(room)
 
-	go room.Start()
+	go room.Run()
 	server.rooms[room.ID] = room
 
 	return room
