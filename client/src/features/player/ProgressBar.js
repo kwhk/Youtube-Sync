@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 
 export default function ProgressBar(props) {
-    const [currVideoPercent, setCurrVideoPercent] = useState(0)
+    const [currVideoPercent, setCurrVideoPercent] = useState(.0)
     const [calcProgressInterval, setCalcProgressInterval] = useState(null)
 
     const lockProgressBar = () => {
@@ -37,6 +37,6 @@ export default function ProgressBar(props) {
     }, [props.isPlaying])
     
     return (
-        <input id="audio-progress-bar" type="range" name="video-seek" min="0" max="100" value={currVideoPercent} onChange={changeProgress} onMouseUp={(e) => {props.seekToEmit(percentToMs(e.target.value)); lockProgressBar();}} onMouseDown={unlockProgressBar} step="0.1"/>
+        <input className="slider w-full z-10" type="range" name="video-seek" min="0" max="100" value={currVideoPercent} onChange={changeProgress} onMouseUp={(e) => {props.seekToEmit(percentToMs(e.target.value)); lockProgressBar();}} onMouseDown={unlockProgressBar} step="0.1"/>
     )
 }

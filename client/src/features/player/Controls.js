@@ -6,6 +6,7 @@ import VideoTimer from '../timer/Timer';
 import Synchronizer from '../sync/Synchronizer';
 import './YoutubePlayer.css';
 import ProgressBar from './ProgressBar'
+import { toggleTheatre } from './playerSizeSlice'
 
 /*
 
@@ -67,6 +68,10 @@ export default function Controls(props) {
         socket.broadcast('seekto-video', ms);
     }
     
+    const toggleTheatreSize = () => {
+        dispatch(toggleTheatre())
+    }
+    
     useEffect(() => {
         socket.on('seekto-video', ms => {
             seekTo(ms);
@@ -89,13 +94,22 @@ export default function Controls(props) {
     }, [])
 
     return (
-        <div className="d-flex flex-row justify-content-space-evenly" style={{marginTop: "5px"}}>
-            { isPlaying ?
-                <button onClick={pauseVideoEmit}>pause</button>
-                :
-                <button onClick={playVideoEmit}>playy</button>
-            }
+        <div className="flex flex-col">
             <ProgressBar player={props.player} isPlaying={isPlaying} seekToEmit={seekToEmit}/>
+            <div className="transition-colors duration-500 bg-secondary lg-rounded-b-xl p-3 sm:px-3 lg:px-5 xl:px-8 grid grid-cols-13 items-center">
+                <div className="col-start-8 flex flex-row items-center justify-center">
+                    { isPlaying ?
+                        <ion-icon name="pause-sharp" class="text-white text-3xl visible cursor-pointer" onClick={pauseVideoEmit}></ion-icon>
+                        :
+                        <ion-icon name="play-sharp" class="text-white text-3xl visible cursor-pointer" onClick={playVideoEmit}></ion-icon>
+                    } 
+                    <ion-icon class="text-white ml-3 text-base visible cursor-pointer" name="play-skip-forward-sharp"></ion-icon>
+                </div>
+                <div className="text-gray-700 flex flex-row col-start-13 justify-center" onClick={toggleTheatreSize}>
+                    <ion-icon class="text-2xl visible cursor-pointer" name="tv-outline"></ion-icon>
+                </div>
+            </div>
         </div>
+
     )
 }

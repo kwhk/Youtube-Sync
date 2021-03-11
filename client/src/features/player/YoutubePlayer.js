@@ -4,16 +4,12 @@ import { selectCurrVideo } from '../currVideo/currVideoSlice'
 import Youtube from 'react-youtube'
 import Controls from './Controls'
 
-import '../../styles/flex.css';
-
 export default function YoutubePlayer() {
 	const [player, setPlayer] = useState(null)
 	const { url } = useSelector(selectCurrVideo)
 	// const [timer, setTimer] = useState(new )
 
 	const opts = {
-		height: '360',
-		width: '640',
 		playerVars: {
 			// https://developers.google.com/youtube/player_parameters
 			controls: 1,
@@ -23,7 +19,8 @@ export default function YoutubePlayer() {
 			mute: 1,
 			enablejsapi: 1,
 			cc_load_policy: 0,
-			start: 0
+			start: 0,
+			controls: 1
 		}
 	}
 
@@ -32,8 +29,10 @@ export default function YoutubePlayer() {
 	}
 	
 	return (
-		<div className="flex flex-col">
-			<Youtube videoId={url} opts={opts} onReady={onVideoReady}/>
+		<div className="flex flex-col rounded-lg overflow-hidden">
+			<div id="player-viewer">
+				<Youtube videoId={url} opts={opts} onReady={onVideoReady}/>
+			</div>
 			{ player != null ?
 				<Controls player={player}/>
 				:

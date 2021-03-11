@@ -1,8 +1,7 @@
-import assert from 'assert'
-
 export default class Socket {
     constructor() {
         this.socket = null;
+        this.events = {};
     }
 
     connect() {
@@ -47,16 +46,20 @@ export default class Socket {
     }
 
     on(eventName, cb) {
-        this.socket.addEventListener("message", res => {
-            if (!res.data) {
-                return
-            }
-            let data = JSON.parse(res.data);
-            if (data.action && (data.action === eventName)) {
-                cb(data.data);
-            }
-        })
+        // Avoid creating duplicate event listeners.
+        if (this.events[eventName] != 1) {
+            this.events[eventName] = 1
+            this.socket.addEventListener("message", res => {
+                if (!res.data) {
+                    return
+                }
+                let data = JSON.parse(res.data);
+                if (data.action && (data.action === eventName)) {
+                    cb(data.data);
+                }
 
+            })
+        }
         return this;
     }
     
