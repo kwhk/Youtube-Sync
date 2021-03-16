@@ -179,10 +179,10 @@ func (server *WsServer) findUserByID(ID uuid.UUID) models.User {
 }
 
 func (server *WsServer) createRoom(name string, private bool) *Room {
-	room := NewRoom(name, private, server)
+	room := newRoom(name, private, server)
 	server.roomRepository.AddRoom(room)
 
-	go room.Run()
+	go room.run()
 	server.rooms[room.ID] = room
 
 	return room

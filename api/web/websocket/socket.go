@@ -30,7 +30,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%+V\n", err)
 	}
 
-	client := initClient(conn, wsServer)
+	client := newClient(conn, wsServer)
 
 	// Allow connection of memory referenced by the caller by doing
 	// all work in new goroutines.

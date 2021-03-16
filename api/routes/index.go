@@ -5,12 +5,15 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/kwhk/sync/api/repository"
+	"github.com/kwhk/sync/api/web/session"
 )
 
+
 // IndexRouter for all basic routes
-func IndexRouter(userRepo *repository.UserRepository, roomRepo *repository.RoomRepository) http.Handler {
+func IndexRouter(userRepo *repository.UserRepository, roomRepo *repository.RoomRepository, globalSessions *session.Manager) http.Handler {
 	r := chi.NewRouter()	
-	r.Mount("/ws", SocketRouter(userRepo, roomRepo))
+	r.Mount("/ws", SocketRouter(userRepo, roomRepo, globalSessions))
 	r.Mount("/db", DatabaseRouter(userRepo, roomRepo))
+	r.Mount("/test", TestRouter(globalSessions))
 	return r
 }

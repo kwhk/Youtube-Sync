@@ -11,6 +11,8 @@ import (
 	"github.com/kwhk/sync/api/config"
 	"github.com/kwhk/sync/api/repository"
 	"github.com/kwhk/sync/api/routes"
+	"github.com/kwhk/sync/api/web/session"
+	_ "github.com/kwhk/sync/api/web/session/providers/memory"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -58,6 +60,8 @@ func main() {
 	
 	userRepo := &repository.UserRepository{DB: db}
 	roomRepo := &repository.RoomRepository{DB: db}
+	globalSessions, _ := session.NewManager("memory", "gosessionid", 3600)
+	go globalSessions.GC()
 
 	r := chi.NewRouter()
 
@@ -65,7 +69,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Mount("/api", routes.IndexRouter(userRepo, roomRepo))
+	r.Mount("/api", routes.IndexRouter(userRepo, roomRepo, globalSessions))
 
 	initWebServer(r)
 }

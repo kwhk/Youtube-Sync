@@ -56,7 +56,7 @@ func (v *Video) elapsed() {
 }
 
 
-func NewRoom(name string, private bool, server *WsServer) *Room {
+func newRoom(name string, private bool, server *WsServer) *Room {
 	return &Room {
 		ID: uuid.New(),
 		Name: name,
@@ -75,7 +75,7 @@ func NewRoom(name string, private bool, server *WsServer) *Room {
 	}
 }
 
-func (room *Room) Run() {
+func (room *Room) run() {
 	go room.subscribeToRoomMessages()
 
 	for {

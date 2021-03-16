@@ -34,18 +34,6 @@ type Message struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-// UnmarshalJSONMessage for message to discern different message types and unmarshal
-func UnmarshalJSONMessage(message []byte) (*Message, error) {
-	var msg Message
-	
-	if err := json.Unmarshal(message, &msg); err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	return &msg, nil
-}
-
 func (message *Message) UnmarshalJSON(data []byte) error {
 	type Alias Message
 	msg := &struct {

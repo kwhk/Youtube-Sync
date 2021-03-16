@@ -1,18 +1,14 @@
 package websocket
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"log"
 	"time"
 	"encoding/json"
-	"sync"
 
 	"github.com/kwhk/sync/api/models"
 )
-
-var clientWg sync.WaitGroup
 
 // Client struct for identifying individual socket connection
 type Client struct {
@@ -49,7 +45,7 @@ var (
 	space = []byte{' '}
 )
 
-func initClient(conn *websocket.Conn, wsServer *WsServer) *Client {
+func newClient(conn *websocket.Conn, wsServer *WsServer) *Client {
 	client := &Client{
 		ID:       uuid.New(),
 		conn:     conn,

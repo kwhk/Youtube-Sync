@@ -2,7 +2,6 @@ package workerPool
 
 import (
 	"sync"
-	"fmt"
 )
 
 type Pool struct {

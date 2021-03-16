@@ -1,7 +1,6 @@
 package workerPool
 
 import (
-	"fmt"
 	"sync"
 )
 
