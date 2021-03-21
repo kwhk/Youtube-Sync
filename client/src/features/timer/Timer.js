@@ -42,7 +42,7 @@ export default class VideoTimer {
 
     seekTo(ms) {
         this.progress = ms;
-        console.log(`Time seeked to ${this.progress / 1000} seconds`);
+        // console.log(`Time seeked to ${this.progress / 1000} seconds`);
         this.start = new Date();
         return this;
     }

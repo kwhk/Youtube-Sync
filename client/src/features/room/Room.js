@@ -41,12 +41,12 @@ export default function Room(props) {
 						<YoutubePlayer/>
 					</div>
 					<div className="xs:col-span-12 sm:col-span-6 md:col-span-4 md:order-2 sm:order-3 xl:col-span-3">
-						<ConnectedUsers/>
+						{/* <ConnectedUsers/> */}
 						{/* <VideoInput/> */}
 						<VideoQueue/>
 					</div>
 					<div className="xs:col-span-12 md:order-3 sm:order-2 sm:col-span-6">
-						{/* <ConnectedUsers/> */}
+						<ConnectedUsers/>
 					</div>
 				</div>
 			)

@@ -6,7 +6,7 @@ import {
 } from 'react-router-dom'
 import './App.css';
 import SocketContext from './context/socket'
-import RoomList from './features/roomList/RoomList'
+import HomePage from './features/home/HomePage'
 import Socket from './api/socket'
 import Room from './features/room/Room'
 import useScript from './utils/useScript'
@@ -46,7 +46,7 @@ function App() {
 					</div>
 					<Switch>
 						<Route exact path="/">
-							<RoomList />
+							<HomePage />
 						</Route>
 						{/* <Route exact path="/room/:id" render={(props) => <Room {...props}/>}/> */}
 						<Route exact path="/room/:id">

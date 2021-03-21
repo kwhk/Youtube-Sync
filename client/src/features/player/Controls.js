@@ -25,7 +25,7 @@ export default function Controls(props) {
     const dispatch = useDispatch()
     
     const seekTo = (ms) => {
-        console.log(`Video seeked to ${ms / 1000} sec`)
+        // console.log(`Video seeked to ${ms / 1000} sec`)
         props.player.seekTo(ms / 1000);
         timer.seekTo(ms);
     }
