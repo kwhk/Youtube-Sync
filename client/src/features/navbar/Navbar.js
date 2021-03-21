@@ -41,9 +41,13 @@ export default function Navbar() {
                             <img className="hidden lg:block h-8 w-auto" src="https://tailwindui.com/img/logos/workflow-logo-indigo-500-mark-white-text.svg" alt="Workflow"/>
                         </div>
                     </div>
+                    { window.location.pathname.split('/')[1] == "room"
+                    ?  
                     <div className="w-1/2">
                         <VideoInput/>
                     </div>
+                    : null
+                    }
                     <div className="flex items-center pr-2 sm:ml-6 sm:pr-0">
                         <Button onClick={createRoom} bgColor="bg-highlight" bgHoverColor="bg-white" textHoverColor="text-black" iconHoverColor="text-black" text="New Room" icon="add-outline"/>
                     </div>
