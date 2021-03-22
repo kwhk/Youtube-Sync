@@ -1,0 +1,14 @@
+version: '2'
+services:
+  server:
+    restart: always
+    build:
+      context: ./api
+      dockerfile: ./build/Dockerfile
+    ports:
+      - "8000:8000"
+  redis:
+    restart: always
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
