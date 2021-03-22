@@ -7,6 +7,13 @@ services:
       dockerfile: ./build/Dockerfile
     ports:
       - "8000:8000"
+  client:
+    restart: always
+    build:
+      context: ./client
+      dockerfile: ./build/Dockerfile
+    ports:
+      - "3000:3000"
   redis:
     restart: always
     image: "redis:alpine"
