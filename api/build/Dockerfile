@@ -12,7 +12,5 @@ COPY . .
 
 RUN go build -o ./build ./cmd/server
 
-EXPOSE 8000
-
 CMD ["./build/server"]
 
