@@ -52,3 +52,5 @@ typings/
 *.tmp
 
 *.rdb
+
+client/build
