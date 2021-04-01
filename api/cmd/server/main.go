@@ -69,7 +69,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Mount("/api", routes.IndexRouter(userRepo, roomRepo, globalSessions))
+	r.Mount("/", routes.IndexRouter(userRepo, roomRepo, globalSessions))
 
 	initWebServer(r)
 }

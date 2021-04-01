@@ -24,8 +24,7 @@ func TestRouter(globalSessions *session.Manager) http.Handler {
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("test accessed")
-		w.Write([]byte("/api/test endpoint accessed"))
+		w.Write([]byte("/test endpoint accessed"))
 	})
 
 	return r
