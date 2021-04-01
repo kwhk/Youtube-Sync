@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  selector:
+    matchLabels:
+      app: sync
+      tier: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sync
+        tier: frontend
+    spec:
+      containers:
+      - name: react-client
+        image: kwhk/sync-client:v0.1
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 3000
+        env:
+        - name: REACT_APP_YOUTUBE_API_KEY
+          value: AIzaSyB6a4lK21aXhhX59D8kD90xlrzcPY4V9hU

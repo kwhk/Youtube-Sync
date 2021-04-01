@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: sync
+      tier: backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sync
+        tier: backend
+    spec:
+      containers:
+      - name: go-server
+        image: kwhk/sync-server:v0.1
+        imagePullPolicy: Always
+        ports:
+          - name: http
+            containerPort: 8000
+        env:
+        - name: DB_HOST
+          value: database-1.cawzli36bh1e.ap-southeast-1.rds.amazonaws.com
+        - name: DB_PASSWORD
+          value: "WRZSvvj8r6-Qyd"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USERNAME
+          value: postgres
+        - name: DB_NAME
+          value: postgres
+      imagePullSecrets:
+      - name: regcred
