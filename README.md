@@ -16,6 +16,11 @@
     ```
     kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
     ```
+    
+    Where:
+    
+    `<your-registry-server>` is your Private Docker Registry FQDN. Use https://index.docker.io/v2/ for DockerHub.
+
 
 4. Now we can begin deployment of our containers and services:
 
