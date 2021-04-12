@@ -69,7 +69,7 @@ export default function Room(props) {
 		}
 	} else {
 		return (
-			<div>Not connected to room</div>
+			<div className="text-white">Not connected to room</div>
 		)
 	}
 }
