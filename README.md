@@ -14,23 +14,34 @@
 3. Since our server image is hosted on a private registry on Docker Hub, we need to create a secret for authentication (refer to `deployments/backend-deployment.yaml` `imagePullSecrets`) We will name our secret `regcred`:
 
     ```
-    kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+    $ kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+    ```
+    
+    Where:
+    
+    `<your-registry-server>` is your Private Docker Registry FQDN. Use https://index.docker.io/v2/ for DockerHub.
+    
+4. All environment variables have been stored in ConfigMaps which are then used in our deployment `.yaml` files. They must first be created:
+
+    ```
+    # At root folder
+    $ kubectl create -f configMaps
     ```
 
-4. Now we can begin deployment of our containers and services:
+5. Now we can begin deployment of our containers and services:
 
     ```
     # Run this in root folder which will run all .yaml files in deployments folder
     $ kubectl apply -f deployments
     ```
 
-5. View the status of all pods, services and deployments:
+6. View the status of all pods, services and deployments:
     
     ```
     $ kubectl get all
     ```
 
-6. Once successfully deployed, you can access it locally:
+7. Once successfully deployed, you can access it locally:
     
     ```
     $ minikube ip
