@@ -54,3 +54,4 @@ typings/
 *.rdb
 
 client/build
+configMaps
