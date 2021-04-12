@@ -2,10 +2,7 @@ package websocket
 
 import (
 	"fmt"
-	"time"
 	"log"
-
-	"github.com/kwhk/sync/api/utils/timer"
 )
 
 type videoQueue struct {
@@ -23,7 +20,7 @@ func (q videoQueue) createVideo(data map[string]interface{}) (Video, bool) {
 		return Video{}, false
 	}
 	
-	video := Video{URL: url.(string), Duration: int64(duration.(float64)), Timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, IsPlaying: false}
+	video := Video{URL: url.(string), Duration: int64(duration.(float64)), IsPlaying: false}
 	return video, true
 }
 
@@ -69,8 +66,8 @@ func (q videoQueue) play() (Message, bool) {
 }
 
 func (q videoQueue) add() (Message, bool) {
-	q.room.Video.Mu.Lock()
-	defer q.room.Video.Mu.Unlock()
+	q.room.Video.mu.Lock()
+	defer q.room.Video.mu.Unlock()
 	video, ok := q.createVideo(q.message.Data.(map[string]interface{}))
 
 	if !ok {
@@ -84,8 +81,8 @@ func (q videoQueue) add() (Message, bool) {
 }
 
 func (q videoQueue) remove() (Message, bool) {
-	q.room.Video.Mu.Lock()
-	defer q.room.Video.Mu.Unlock()
+	q.room.Video.mu.Lock()
+	defer q.room.Video.mu.Unlock()
 	var video map[string]interface{} = q.message.Data.(map[string]interface{})
 	var url string = video["url"].(string)
 	var index int = int(video["index"].(float64))
@@ -101,8 +98,8 @@ func (q videoQueue) remove() (Message, bool) {
 }
 
 func (q videoQueue) empty() (Message, bool) {
-	q.room.Video.Mu.Lock()
-	defer q.room.Video.Mu.Unlock()
+	q.room.Video.mu.Lock()
+	defer q.room.Video.mu.Unlock()
 	q.room.Video.Queue = nil
 	fmt.Printf("Emptied video queue\n")
 	return q.message, true

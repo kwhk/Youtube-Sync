@@ -1,18 +1,18 @@
 package websocket
 
 import (
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
+	"encoding/json"
 	"log"
 	"time"
-	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 
-	"github.com/kwhk/sync/api/models"
+	models "github.com/kwhk/sync/api/models/redis"
 )
 
 // Client struct for identifying individual socket connection
 type Client struct {
-	ID   uuid.UUID `json:"id"`
+	ID   string `json:"id"`
 	Name string    `json:"name"`
 	// the websocket connection
 	conn *websocket.Conn
@@ -47,7 +47,7 @@ var (
 
 func newClient(conn *websocket.Conn, wsServer *WsServer) *Client {
 	client := &Client{
-		ID:       uuid.New(),
+		ID:       uuid.New().String(),
 		conn:     conn,
 		wsServer: wsServer,
 		send:     make(chan []byte, 256),
@@ -86,7 +86,7 @@ func (client *Client) readPump() {
 		// convert from JSON to Message struct.
 		var message Message
 		if err := json.Unmarshal(p, &message); err != nil {
-			log.Printf("Error on unmarshal JSON message %s", err)
+			log.Printf("Error on unmarshal JSON message: %s\n", err)
 			continue
 		}
 
@@ -138,11 +138,11 @@ func (client *Client) eventHandler(message Message) {
 
 	switch action {
 	case JoinRoomAction:
-		client.handleJoinRoom(message)
+		client.wsServer.workerPool.AddJob(func() {client.handleJoinRoom(message)})
 	case LeaveRoomAction:
-		client.handleLeaveRoom()
+		client.wsServer.workerPool.AddJob(func() {client.handleLeaveRoom()})
 	case CreateRoomAction:
-		client.handleCreateRoom()
+		client.wsServer.workerPool.AddJob(func() {client.handleCreateRoom()})
 	case UserPingAction:
 		client.handlePing(message)
 	default:
@@ -161,20 +161,28 @@ func (client *Client) handlePing(message Message) {
 
 func (client *Client) handleCreateRoom() {
 	// private attribute set to false and no room name for the meantime
-	room := client.wsServer.createRoom("", false)
-	client.joinRoom(room.ID, client)
-	
-	message := Message{
-		Action: CreateRoomAction,
-		Data: room,
+	room := client.wsServer.createRoom()
+	var message Message
+
+	// Room is nil if it already exists
+	if room == nil {
+		message = Message{
+			Action: CreateRoomAction,
+			Data: "Failed to create room",
+		}
+	} else {
+		client.joinRoom(room.ID, client)
+		message = Message{
+			Action: CreateRoomAction,
+			Data: room,
+		}
 	}
 
 	client.send <- message.encode()
 }
 
 func (client *Client) handleJoinRoom(message Message) {
-	roomID := uuid.MustParse(message.Data.(string))
-	room := client.joinRoom(roomID, nil)
+	room := client.joinRoom(message.Data.(string), nil)
 
 	if room == nil {
 		return
@@ -190,28 +198,25 @@ func (client *Client) handleLeaveRoom() {
 		return
 	}
 	
+	client.wsServer.userRepository.LeaveRoom(client, room)
 	room.unregister <- client
 	client.room = nil
 }
 
-func (client *Client) joinRoom(roomID uuid.UUID, sender models.User) *Room {
+func (client *Client) joinRoom(roomID string, sender models.User) *Room {
 	room := client.wsServer.findRoomByID(roomID)
 
+	// Room does not exist.
 	if room == nil {
-		log.Printf("RoomID %s not found.\n", roomID.String())
+		log.Printf("RoomID %s not found.\n", roomID)
 		return nil
 	}
 
-	if sender == nil && room.Private {
-		return nil
-	}
-
-	// Check if user has already joined this room.
+	// If user has not already joined this room.
 	if !client.isInRoom(room) {
 		client.wsServer.userRepository.JoinRoom(client, room)
 		client.room = room
-		room.register <- client
-		// client.notifyRoomJoined(room, sender)
+		room.registerClient(client)
 	}
 
 	return room
@@ -222,10 +227,14 @@ func (client *Client) isInRoom(room *Room) bool {
 }
 
 // Notify client that they have successfully joined room
-func (client *Client) notifyRoomJoined(room *Room) {	
-	clients := []string{}
-	for id := range room.Clients {
-		clients = append(clients, id)
+func (client *Client) notifyRoomJoined(room *Room) {
+	var newClients []string
+	if clients, ok := client.wsServer.roomRepository.GetUsers(room.ID); ok {
+		newClients = make([]string, len(clients))
+		
+		for i, client := range clients {
+			newClients[i] = client.GetID()
+		}
 	}
 
 	var joinMsg Message = Message{ 
@@ -242,14 +251,14 @@ func (client *Client) notifyRoomJoined(room *Room) {
 
 		}{
 			VideoQueue: room.Video.Queue,
-			ConnectedUsers: clients,
+			ConnectedUsers: newClients,
 			CurrVideo: struct {
 				URL string `json:"url"`
 				Elapsed int64 `json:"elapsed"`
 				IsPlaying bool `json:"isPlaying"`
 			}{
 				room.Video.Curr.URL,
-				room.Video.Curr.Timer.Elapsed(),
+				room.Clock.Elapsed(),
 				room.Video.Curr.IsPlaying,
 			},
 		},
@@ -259,7 +268,7 @@ func (client *Client) notifyRoomJoined(room *Room) {
 }
 
 func (client *Client) GetID() string {
-	return client.ID.String()
+	return client.ID
 }
 
 func (client *Client) GetName() string {

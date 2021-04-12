@@ -6,9 +6,9 @@ import (
 
 	wp "github.com/kwhk/sync/api/utils/workerPool"
 
-	"github.com/google/uuid"
 	"github.com/kwhk/sync/api/config"
-	"github.com/kwhk/sync/api/models"
+	models "github.com/kwhk/sync/api/models/redis"
+	repo "github.com/kwhk/sync/api/repository/redis"
 )
 
 const PubSubGeneralChannel = "general"
@@ -19,25 +19,24 @@ type WsServer struct {
 	register chan *Client
 	unregister chan *Client
 	emit chan Message
-	rooms map[uuid.UUID]*Room
+	rooms map[string]*Room
 	workerPool *wp.Pool
-	roomRepository models.RoomRepository
-	userRepository models.UserRepository
+	roomRepository repo.RoomRepository
+	userRepository repo.UserRepository
 }
 
-func NewWebsocketServer(roomRepo models.RoomRepository, userRepo models.UserRepository) *WsServer {
+func NewWebsocketServer(roomRepo repo.RoomRepository, userRepo repo.UserRepository) *WsServer {
 	wsServer := &WsServer{
+		users: make([]models.User, 0),
 		clients: make(map[string]*Client),
 		register: make(chan *Client),
 		unregister: make(chan *Client),
 		emit: make(chan Message),
-		rooms: make(map[uuid.UUID]*Room),
+		rooms: make(map[string]*Room),
 		roomRepository: roomRepo,
 		userRepository: userRepo,
 		workerPool: wp.NewPool(10),
 	}
-
-	wsServer.users = userRepo.GetAllUsers()
 
 	return wsServer
 }
@@ -49,9 +48,9 @@ func (server *WsServer) Run() {
 	for {
 		select {
 		case client := <-server.register:
-			server.workerPool.AddJob(func() {server.registerClient(client)})
+			server.registerClient(client)
 		case client := <-server.unregister:
-			server.workerPool.AddJob(func() {server.unregisterClient(client)})
+			server.unregisterClient(client)
 		case message := <-server.emit:
 			server.workerPool.AddJob(func() {server.eventHandler(message)})
 		}
@@ -157,19 +156,28 @@ func (server *WsServer) broadcastToClients(message Message) {
 	}
 }
 
-func (server *WsServer) findRoomByID(ID uuid.UUID) *Room {
-	if elem, ok := server.rooms[ID]; ok {
+func (server *WsServer) findRoomByID(id string) *Room {
+	// Check if room already exists in instance.
+	if elem, ok := server.rooms[id]; ok {
 		return elem
+	}
+
+	// Fetch room from database and then store in instance.
+	if r, ok := server.roomRepository.FindRoomByID(id); ok {
+		room := newRoomFromRedis(r, server)
+		go room.run()
+		server.rooms[room.ID] = room
+		return room
 	}
 	
 	return nil
 }
 
-func (server *WsServer) findUserByID(ID uuid.UUID) models.User {
+func (server *WsServer) findUserByID(id string) models.User {
 	var foundUser models.User
 
 	for _, client := range server.users {
-		if client.GetID() == ID.String() {
+		if client.GetID() == id {
 			foundUser = client
 			break
 		}
@@ -178,17 +186,22 @@ func (server *WsServer) findUserByID(ID uuid.UUID) models.User {
 	return foundUser
 }
 
-func (server *WsServer) createRoom(name string, private bool) *Room {
-	room := newRoom(name, private, server)
-	server.roomRepository.AddRoom(room)
+func (server *WsServer) createRoom() *Room {
+	// Create new instance of room.
+	room := newRoom(server)
 
-	go room.run()
-	server.rooms[room.ID] = room
+	// Add instance to database.
+	if ok := server.roomRepository.AddRoom(room); ok {
+		go room.run()
+		server.rooms[room.ID] = room
+		return room
+	}
 
-	return room
+	return nil
 }
 
 func (server *WsServer) deleteRoom(room *Room) {
+	// Delete from database
 	server.roomRepository.DeleteRoom(room)
 	delete(server.rooms, room.ID)
 }
