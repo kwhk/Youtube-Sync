@@ -20,6 +20,6 @@ spec:
         imagePullPolicy: Always
         ports:
           - containerPort: 3000
-        env:
-        - name: REACT_APP_YOUTUBE_API_KEY
-          value: AIzaSyB6a4lK21aXhhX59D8kD90xlrzcPY4V9hU
+        envFrom:
+          - configMapRef:
+              name: client-env
