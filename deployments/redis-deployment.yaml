@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: sync
+      tier: redis 
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sync
+        tier: redis 
+    spec:
+      containers:
+        - name: redis
+          image: redis:5.0.7-alpine
+          command:
+            - redis-server
+          env:
+          - name: MASTER
+            value: "true"
+          ports:
+          - containerPort: 6379
