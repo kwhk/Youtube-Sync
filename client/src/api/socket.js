@@ -8,8 +8,9 @@ export default class Socket {
         let self = this;
 
         return new Promise(function(resolve, reject) {
-            // TODO: figure out how to change from localhost to DNS name specified in kubernetes YAML file
-            let server = new WebSocket('ws://localhost:8000/api/ws');
+            // Uncomment line below when deploying to kubernetes
+            let server = new WebSocket(`ws://${window.location.hostname}/api/ws`);
+            // let server = new WebSocket(`ws://localhost:8000/api/ws`)
             server.onclose = function(event) {
                 let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
                 console.log('Connection closed: ' + e);
