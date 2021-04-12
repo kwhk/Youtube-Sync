@@ -7,7 +7,7 @@ spec:
     matchLabels:
       app: sync
       tier: backend
-  replicas: 1
+  replicas: 3
   template:
     metadata:
       labels:
@@ -21,16 +21,8 @@ spec:
         ports:
           - name: http
             containerPort: 8000
-        env:
-        - name: DB_HOST
-          value: database-1.cawzli36bh1e.ap-southeast-1.rds.amazonaws.com
-        - name: DB_PASSWORD
-          value: "WRZSvvj8r6-Qyd"
-        - name: DB_PORT
-          value: "5432"
-        - name: DB_USERNAME
-          value: postgres
-        - name: DB_NAME
-          value: postgres
+        envFrom:
+          - configMapRef:
+              name: postgres-db
       imagePullSecrets:
       - name: regcred
