@@ -30,7 +30,6 @@ export default class Socket {
     }
 
     disconnect() {
-        console.log('I want to disconnect!')
         let self = this;
         return new Promise(function(resolve, reject) {
             self.server.onclose = function(event) {
