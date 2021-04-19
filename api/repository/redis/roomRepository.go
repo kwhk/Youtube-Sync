@@ -11,24 +11,24 @@ var ctx context.Context = context.Background()
 
 type Room struct {
 	ID string
-	CurrVideo models.Video
-	Queue []models.Video
-	Clock models.Clock
+	CurrVideo models.Encodable
+	Queue []models.Encodable
+	Clock models.Encodable
 }
 
 func (room *Room) GetID() string {
 	return room.ID
 }
 
-func (room *Room) GetCurrVideo() models.Video {
+func (room *Room) GetCurrVideo() models.Encodable {
 	return room.CurrVideo
 }
 
-func (room *Room) GetQueue() []models.Video {
+func (room *Room) GetQueue() []models.Encodable {
 	return room.Queue
 }
 
-func (room *Room) GetClock() models.Clock {
+func (room *Room) GetClock() models.Encodable {
 	return room.Clock
 }
 
@@ -47,15 +47,16 @@ func (repo *RoomRepository) checkRoomExists(roomID string) bool {
 }
 
 func (repo *RoomRepository) AddRoom(room models.Room) bool {
+	// Check if room has been created already.
 	if repo.checkRoomExists(room.GetID()) {
 		return false
 	}
 
 	pipe := repo.Redis.Pipeline()
-	pipe.HSet(ctx, newKey(roomKey, room.GetID()), currVideoKey, room.GetCurrVideo().GetEncoding())
-	pipe.HSet(ctx, newKey(roomKey, room.GetID()), clockKey, room.GetClock().GetEncoding())
+	pipe.HSet(ctx, newKey(roomKey, room.GetID()), currVideoKey, room.GetCurrVideo().Encode())
+	pipe.HSet(ctx, newKey(roomKey, room.GetID()), clockKey, room.GetClock().Encode())
 	for _, video := range room.GetQueue() {
-		pipe.RPush(ctx, newKey(roomKey, room.GetID(), queueKey), video.GetEncoding())
+		pipe.RPush(ctx, newKey(roomKey, room.GetID(), queueKey), video.Encode())
 	}
 
 	_, err := pipe.Exec(ctx)
@@ -97,7 +98,7 @@ func (repo *RoomRepository) FindRoomByID(ID string) (models.Room, bool) {
 	currVideoRes, _ := currVideo.Bytes()
 	clockRes, _ := clock.Bytes()
 
-	var newQueue []models.Video = make([]models.Video, len(queueRes))
+	var newQueue []models.Encodable = make([]models.Encodable, len(queueRes))
 
 	for index, video := range queueRes {
 		newQueue[index] = &Video{Encoding: []byte(video)}
