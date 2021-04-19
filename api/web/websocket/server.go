@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"fmt"
 	"encoding/json"
 	"log"
 
@@ -23,9 +24,10 @@ type WsServer struct {
 	workerPool *wp.Pool
 	roomRepository repo.RoomRepository
 	userRepository repo.UserRepository
+	playerRepository repo.PlayerRepository
 }
 
-func NewWebsocketServer(roomRepo repo.RoomRepository, userRepo repo.UserRepository) *WsServer {
+func NewWebsocketServer(roomRepo repo.RoomRepository, userRepo repo.UserRepository, playerRepo repo.PlayerRepository) *WsServer {
 	wsServer := &WsServer{
 		users: make([]models.User, 0),
 		clients: make(map[string]*Client),
@@ -35,6 +37,7 @@ func NewWebsocketServer(roomRepo repo.RoomRepository, userRepo repo.UserReposito
 		rooms: make(map[string]*Room),
 		roomRepository: roomRepo,
 		userRepository: userRepo,
+		playerRepository: playerRepo,
 		workerPool: wp.NewPool(10),
 	}
 
@@ -192,6 +195,7 @@ func (server *WsServer) createRoom() *Room {
 
 	// Add instance to database.
 	if ok := server.roomRepository.AddRoom(room); ok {
+		fmt.Printf("Room %s created\n", room.ID)
 		go room.run()
 		server.rooms[room.ID] = room
 		return room
