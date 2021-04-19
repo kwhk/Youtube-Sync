@@ -5,7 +5,7 @@ export const videoQueueSlice = createSlice({
     name: 'videoQueue',
     initialState: {
         queue: [],
-        currPlayingIndex: 0
+        currPlayingIndex: -1
     },
     reducers: {
         // add video to end of queue
@@ -25,7 +25,7 @@ export const videoQueueSlice = createSlice({
             })
         },
         setVideoActive: (state, action) => {
-            // if currPlayingIndex is -1 then this is the first video in queue
+            // if state.currPlayingIndex is -1 then this is the first video in queue
             if (state.currPlayingIndex == -1) {
                 state.currPlayingIndex = action.payload
                 state.queue[action.payload].active = true
@@ -52,15 +52,21 @@ export function pushVideo(url) {
     }
 }
 
-export function setVideoQueue(queue) {
+export function setVideoQueue(queue, currPlayingIndex) {
     return async function setVideoQueueThunk(dispatch, getState) {
         let newQueue = []
         for (const video of queue) {
             let videoInfo = await getYoutubeVideo(video.url)
-            videoInfo.active = video.isPlaying
+            videoInfo.active = false
             newQueue.push(videoInfo)
         }
         dispatch(videoQueueSlice.actions.setVideoQueue(newQueue))
+        
+        // If index is -1, this means there are no videos in queue
+        // so not possible to have current video playing.
+        if (currPlayingIndex != -1) {
+            dispatch(videoQueueSlice.actions.setVideoActive(currPlayingIndex))
+        }
     }
 }
 
