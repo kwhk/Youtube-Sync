@@ -1,11 +1,11 @@
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useContext, useEffect } from 'react'
 import SocketContext from '../../context/socket'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectConnectedUsers, pushUser, removeUser }  from './connectedUsersSlice'
 import User from './User'
 
 export default function ConnectedUsers() {
-    const socket = useContext(SocketContext)
+    const { socket } = useContext(SocketContext)
     const { users } = useSelector(selectConnectedUsers)
     const dispatch = useDispatch()
     
@@ -15,7 +15,6 @@ export default function ConnectedUsers() {
         })
 
         socket.on('leave-room', userId => {
-            console.log('leave room fired', userId)
             dispatch(removeUser(userId))
         })
     }, [])
