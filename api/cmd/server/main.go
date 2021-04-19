@@ -58,6 +58,7 @@ func main() {
 	
 	userRepo := repository.UserRepository{Redis: config.Redis}
 	roomRepo := repository.RoomRepository{Redis: config.Redis}
+	playerRepo := repository.PlayerRepository{Redis: config.Redis}
 	globalSessions, _ := session.NewManager("memory", "gosessionid", 3600)
 	go globalSessions.GC()
 
@@ -67,7 +68,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Mount("/", routes.IndexRouter(userRepo, roomRepo, globalSessions))
+	r.Mount("/", routes.IndexRouter(userRepo, roomRepo, playerRepo, globalSessions))
 
 	initWebServer(r)
 }
