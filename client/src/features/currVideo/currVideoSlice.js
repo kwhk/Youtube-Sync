@@ -5,7 +5,8 @@ export const currVideoSlice = createSlice({
     initialState: {
         isPlaying: false,
         elapsed: 0,
-        url: ""
+        url: "",
+        duration: 0
     },
     // implement reducers to modify FIFO queue
     reducers: {
@@ -19,10 +20,13 @@ export const currVideoSlice = createSlice({
             state.isPlaying = action.payload
         },
         setCurrVideo: (state, action) => {
-            const video = action.payload
-            state.isPlaying = video.isPlaying
-            state.elapsed = video.elapsed
-            state.url = video.url
+            if (action.payload != null) {
+                const video = action.payload
+                state.duration = video.duration
+                state.isPlaying = video.isPlaying
+                state.elapsed = video.elapsed
+                state.url = video.url
+            }
         }
     }
 })
