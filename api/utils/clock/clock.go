@@ -13,6 +13,12 @@ type Clock struct {
 	Stop bool `json:"stop"`
 }
 
+func (t *Clock) Reset() {
+	t.Start = time.Now()
+	t.Stop = true
+	t.Progress = 0
+}
+
 // Pause pauses the timer for the currently playing video
 func (t *Clock) Pause() *Clock {
 	t.Progress = time.Since(t.Start) + t.Progress
@@ -46,7 +52,7 @@ func (t *Clock) SeekTo(ms int64) *Clock {
 	return t
 }
 
-func (t *Clock) encode() []byte {
+func (t *Clock) Encode() []byte {
 	json, err := json.Marshal(t)
 	if err != nil {
 		log.Println(err)
@@ -64,6 +70,6 @@ func DecodeClock(p []byte) *Clock {
 	return &clock
 }
 
-func (t *Clock) GetEncoding() []byte {
-	return t.encode()
+func (t *Clock) IsPlaying() bool {
+	return !t.Stop
 }
