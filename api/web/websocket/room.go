@@ -33,9 +33,31 @@ type Room struct {
 }
 
 type videoDetails struct {
-	Curr Video `json:"curr"`
+	Curr curr `json:"curr"` 
 	Queue []Video `json:"queue"`
 	mu sync.Mutex `json:"-"`
+}
+
+type curr struct {
+	Details Video `json:"details"`
+	Index int `json:"index"`
+}
+
+func (c curr) Encode() []byte {
+	json, err := json.Marshal(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return json
+}
+
+func decodeCurr(p []byte) curr {
+	var curr curr
+	if err := json.Unmarshal(p, &curr); err != nil {
+		log.Printf("Error on unmarshal curr: %s\n", err)
+	}
+	return curr
 }
 
 func newRoom(server *WsServer) *Room {
@@ -46,9 +68,9 @@ func newRoom(server *WsServer) *Room {
 		unregister: make(chan *Client),
 		clients: make(map[string]*Client),
 		broadcast: make(chan Message),
-		Clock: &clock.Clock{ Start: time.Now(), Progress: 0}, 
+		Clock: &clock.Clock{ Start: time.Now(), Progress: 0, Stop: true }, 
 		Video: videoDetails{
-			Curr: Video{},
+			Curr: curr{Index: -1},
 			Queue: make([]Video, 0),
 		},
 	}
@@ -62,9 +84,9 @@ func newRoomFromRedis(room models.Room, server *WsServer) *Room {
 		unregister: make(chan *Client),
 		clients: make(map[string]*Client),
 		broadcast: make(chan Message),
-		Clock: clock.DecodeClock(room.GetClock().GetEncoding()),
+		Clock: clock.DecodeClock(room.GetClock().Encode()),
 		Video: videoDetails{
-			Curr: decodeVideo(room.GetCurrVideo().GetEncoding()),
+			Curr: decodeCurr(room.GetCurrVideo().Encode()),
 			Queue: readQueue(room.GetQueue()),
 		},
 	}
@@ -170,7 +192,7 @@ func (room *Room) eventHandler(message Message) (Message, bool) {
 	case PlayVideoAction, PauseVideoAction, SeekToVideoAction:
 		h = newPlayback(message, room, action)
 	case PlayVideoQueueAction, AddVideoQueueAction, RemoveVideoQueueAction, EmptyVideoQueueAction:
-		h = videoQueue{message, room, action}
+		h = newVideoQueue(message, room, action)
 	case JoinRoomAction, LeaveRoomAction:
 		return message, true
 	default:
@@ -185,12 +207,12 @@ func (room *Room) GetID() string {
 	return room.ID
 }
 
-func (room *Room) GetCurrVideo() models.Video {
+func (room *Room) GetCurrVideo() models.Encodable {
 	return room.Video.Curr
 }
 
-func (room *Room) GetQueue() []models.Video {
-	var queue []models.Video = make([]models.Video, len(room.Video.Queue))
+func (room *Room) GetQueue() []models.Encodable {
+	var queue []models.Encodable = make([]models.Encodable, len(room.Video.Queue))
 
 	for index, val := range room.Video.Queue {
 		queue[index] = val
@@ -201,16 +223,16 @@ func (room *Room) GetQueue() []models.Video {
 
 // readQueue converts slice of models.Video to slice of video
 // to match repository type
-func readQueue(queue []models.Video) []Video {
+func readQueue(queue []models.Encodable) []Video {
 	var newQueue []Video = make([]Video, len(queue))
 
 	for index, val := range queue {
-		newQueue[index] = decodeVideo(val.GetEncoding())
+		newQueue[index] = decodeVideo(val.Encode())
 	}
 
 	return newQueue
 }
 
-func (room *Room) GetClock() models.Clock {
+func (room *Room) GetClock() models.Encodable {
 	return room.Clock
 }
