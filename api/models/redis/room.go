@@ -2,9 +2,9 @@ package redis
 
 type Room interface {
 	GetID() string
-	GetCurrVideo() Video
-	GetQueue() []Video
-	GetClock() Clock
+	GetCurrVideo() Encodable
+	GetQueue() []Encodable
+	GetClock() Encodable 
 }
 
 type RoomRepository interface {
