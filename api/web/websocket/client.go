@@ -245,6 +245,8 @@ func (client *Client) notifyRoomJoined(room *Room) {
 			ConnectedUsers []string `json:"connectedUsers"`
 			CurrVideo struct {
 				URL string `json:"url"`
+				Duration int64 `json:"duration"`
+				Index int `json:"index"`
 				Elapsed int64 `json:"elapsed"`
 				IsPlaying bool `json:"isPlaying"`
 			} `json:"currVideo"`
@@ -254,12 +256,16 @@ func (client *Client) notifyRoomJoined(room *Room) {
 			ConnectedUsers: newClients,
 			CurrVideo: struct {
 				URL string `json:"url"`
+				Duration int64 `json:"duration"`
+				Index int `json:"index"`
 				Elapsed int64 `json:"elapsed"`
 				IsPlaying bool `json:"isPlaying"`
 			}{
-				room.Video.Curr.URL,
+				room.Video.Curr.Details.URL,
+				room.Video.Curr.Details.Duration,
+				room.Video.Curr.Index,
 				room.Clock.Elapsed(),
-				room.Video.Curr.IsPlaying,
+				room.Clock.IsPlaying(),
 			},
 		},
 	}
