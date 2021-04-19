@@ -1,19 +1,17 @@
 package redis
 
-type Clock interface {
-	GetEncoding() []byte
-}
-
-type Video interface {
-	GetEncoding() []byte
+type Encodable interface {
+	Encode() []byte
 }
 
 type PlayerRepository interface {
-	AddToVideoQueue(video Video) bool
-	RemoveFromVideoQueue(video Video) bool
-	EmptyVideoQueue() bool
-	GetCurrVideo() (Video, bool)
-	SetCurrVideo(video Video) bool
-	SetClock(clock Clock) bool
-	GetClock() (Clock, bool)
+	AddToVideoQueue(roomID string, video Encodable) bool
+	RemoveFromVideoQueue(roomID string, video Encodable) bool
+	EmptyVideoQueue(roomID string) bool
+	GetVideoQueue(roomID string) []Encodable
+	ReorderVideoQueue(roomID string, newIndex int) bool
+	GetCurrVideo(roomID string) (Encodable, bool)
+	SetCurrVideo(roomID string, video Encodable) bool
+	SetClock(roomID string, clock Encodable) bool
+	GetClock(roomID string) (Encodable, bool)
 }
