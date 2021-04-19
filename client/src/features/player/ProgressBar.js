@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { setCurrVideoElapsed, selectCurrVideo } from '../currVideo/currVideoSlice'
 
 export default function ProgressBar(props) {
+    const { duration } = useSelector(selectCurrVideo)
     const [currVideoPercent, setCurrVideoPercent] = useState(.0)
     const [calcProgressInterval, setCalcProgressInterval] = useState(null)
+    const dispatch = useDispatch()
 
     const lockProgressBar = () => {
         if (calcProgressInterval == null) {
@@ -16,7 +20,11 @@ export default function ProgressBar(props) {
     }
     
     const changeProgress = (e) => {
-        setCurrVideoPercent(e.target.value)
+        console.log(props.player.getCurrentTime())
+        const percent = parseFloat(e.target.value)
+        setCurrVideoPercent(percent)
+        const elapsed = isNaN(percent) ? 0 : Math.round(percent / 100 * duration)
+        dispatch(setCurrVideoElapsed(elapsed))
     }
     
     const percentToMs = (percent) => {
@@ -24,8 +32,11 @@ export default function ProgressBar(props) {
     }
 
     const calculateProgress = () => {
-        let percent = props.player.getCurrentTime() / props.player.getDuration() * 100;
-        setCurrVideoPercent(Math.round(10 * percent) / 10)
+        const val = props.player.getCurrentTime() / props.player.getDuration() * 100;
+        const percent = Math.round(10 * val) / 10
+        setCurrVideoPercent(percent)
+        const elapsed = isNaN(percent) ? 0 : Math.round(percent / 100 * duration)
+        dispatch(setCurrVideoElapsed(elapsed))
     }
     
     useEffect(() => {
