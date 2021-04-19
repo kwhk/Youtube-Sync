@@ -5,11 +5,10 @@ import { pushVideo, removeVideo, setVideoActive } from './videoQueueSlice'
 import { setCurrVideo } from '../currVideo/currVideoSlice'
 import socketContext from '../../context/socket'
 import Video from './Video'
-import { getYoutubeVideo } from './utils'
 
 export default function VideoQueue() {
     const { queue } = useSelector(selectVideoQueue)
-    const socket = useContext(socketContext)
+    const { socket } = useContext(socketContext)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -22,7 +21,7 @@ export default function VideoQueue() {
         })
 
         socket.on('play-video-queue', data => {
-            dispatch(setCurrVideo({url: data.url, isPlaying: false, elapsed: 0}))
+            dispatch(setCurrVideo({url: data.url, duration: data.duration, isPlaying: false, elapsed: 0}))
             dispatch(setVideoActive(data.index))
         })
     }, [])

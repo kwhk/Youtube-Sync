@@ -4,7 +4,7 @@ import { getYoutubeVideo, youtubeParser } from './utils';
 
 export default function VideoInput() {
     const [url, setURL] = useState('');
-    const socket = useContext(SocketContext);
+    const { socket } = useContext(SocketContext);
 
     const handleSubmit = async (e) => {
         e.preventDefault()

@@ -5,10 +5,10 @@ import { msToTime } from './utils'
 import Button from '../../components/Button'
 
 export default function Video(props) {
-    const socket = useContext(socketContext)
+    const { socket } = useContext(socketContext)
 
     const handlePlay = () => {
-        socket.broadcast('play-video-queue', {url: props.url, index: props.index})
+        socket.broadcast('play-video-queue', {url: props.url, duration: props.duration, index: props.index})
     }
 
     const handleRemove = () => {
