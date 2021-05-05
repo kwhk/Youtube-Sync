@@ -1,6 +1,6 @@
-FROM golang:alpine
+FROM arm32v7/golang:alpine
 ENV GOOS=linux \
-    GOARCH=amd64
+    GOARCH=arm
 
 WORKDIR /app
 
