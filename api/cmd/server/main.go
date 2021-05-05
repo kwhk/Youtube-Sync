@@ -53,8 +53,6 @@ func initWebServer(router http.Handler) {
 
 func main() {
 	config.CreateRedisClient()
-	db := config.ConnectToDB()
-	defer db.Close()
 	
 	userRepo := repository.UserRepository{Redis: config.Redis}
 	roomRepo := repository.RoomRepository{Redis: config.Redis}
