@@ -1,4 +1,9 @@
-# Setup kubernetes to deploy project locally to single node kubernetes cluster (using `Minikube`)
+# <h1 style="text-align: center"> Youtube Sync</h1>
+A web app written in React/Redux and Go, aimed to sync Youtube videos between users. Deployed with Kubernetes and running on a cluster of Raspberry Pis.
+
+![](./images/splash.png)
+
+## Setup kubernetes to deploy project locally to single node kubernetes cluster (using `Minikube`)
 
 1. Run Docker Desktop.
 2. Use `minikube start` to deploy single node cluster locally on your computer.
@@ -11,7 +16,7 @@
     $ minikube addons enable ingress
     ```
 
-# Setup kubernetes to deploy project to cluster hosted on AWS (using `kubeadm`)
+## Setup kubernetes to deploy project to cluster hosted on AWS (using `kubeadm`)
 
 For this project we will deploy a kubernetes cluster with only one node (that node being the master, control-plane).
 
@@ -23,7 +28,7 @@ For this project we will deploy a kubernetes cluster with only one node (that no
 
 3. 
 
-# How to deploy project 
+## How to deploy project 
 1. Since our api server docker image is hosted on a private registry on Docker Hub, we need to create a secret for authentication (refer to `deployments/backend-deployment.yaml` `imagePullSecrets`) We will name our secret `regcred`:
 
     ```
@@ -61,7 +66,7 @@ For this project we will deploy a kubernetes cluster with only one node (that no
     ```
     This will return an external IP address that you can paste in your browser.
 
-### Cleaning Up
+#### Cleaning Up
 
 It is important to clean up the resources you have deployed:
 ```
@@ -70,7 +75,7 @@ $ kubectl delete -f deployments
 $ minikube delete
 ``` 
 
-# How to update docker images
+## How to update docker images
 
 When deploying our application to a kubernetes cluster, our `.yaml` files will pull the docker images from our repositories from Docker Hub. To update images:
 1. Make sure you are logged into Docker Hub:
