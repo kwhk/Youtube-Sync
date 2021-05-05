@@ -8,6 +8,8 @@ export async function getYoutubeVideo(url) {
         }
     })
 
+    if (res.status != 200) return false
+
     const data = res.data.items[0]
 
     const videoInfo = {

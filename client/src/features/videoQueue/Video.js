@@ -16,7 +16,7 @@ export default function Video(props) {
     }
 
     return (
-        <div className="bg-secondary flex flex-col rounded-xl my-3 p-5">
+        <div className="bg-secondary flex flex-col rounded-xl my-3 p-5 cursor-pointer">
             { props.active ?
                 <div className="flex flex-row items-center mb-2">
                     <div className="h-1 w-1 my-1 rounded-full bg-green-500 z-2 mr-2"></div>
@@ -34,6 +34,9 @@ export default function Video(props) {
                 </div>
             </div>
             <div className="flex flex-row mt-5">
+                <div className="pr-5">
+                    <Button onClick={handlePlay} bgColor="bg-green-600" icon="play" text="Play"/>
+                </div>
                 <Button onClick={handleRemove} bgColor="bg-red-600" icon="close-outline" text="Remove"/>
             </div>
         </div>
