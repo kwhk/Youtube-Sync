@@ -7,12 +7,11 @@ import Controls from './Controls'
 export default function YoutubePlayer() {
 	const [player, setPlayer] = useState(null)
 	const { url } = useSelector(selectCurrVideo)
-	// const [timer, setTimer] = useState(new )
 
 	const opts = {
 		playerVars: {
 			// https://developers.google.com/youtube/player_parameters
-			controls: 1,
+			controls: 0,
 			disablekb: 0,
 			modestbranding: 1,
 			playsinline: 1,
@@ -20,7 +19,6 @@ export default function YoutubePlayer() {
 			enablejsapi: 1,
 			cc_load_policy: 0,
 			start: 0,
-			controls: 1
 		}
 	}
 

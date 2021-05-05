@@ -4,9 +4,6 @@
     z-index: 999;
 } */
 
-#player-viewer {
-    max-height: 75vh;
-}
 
 #player-viewer > div {
     position: relative;

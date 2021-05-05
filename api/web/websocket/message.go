@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/kwhk/sync/api/models"
+	models "github.com/kwhk/sync/api/models/redis"
 )
 
 const (

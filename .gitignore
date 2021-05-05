@@ -50,3 +50,8 @@ typings/
 # Testing
 *.test
 *.tmp
+
+*.rdb
+
+client/build
+configMaps

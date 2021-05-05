@@ -7,7 +7,7 @@ import { useHistory } from 'react-router-dom'
 export default function RoomList() {
     const [rooms, setRooms] = useState([])
     let history = useHistory()
-    const socket = useContext(SocketContext)
+    const { socket } = useContext(SocketContext)
 
     useEffect(() => {
         async function callDB() {

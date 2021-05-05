@@ -1,0 +1,14 @@
+# Service to connect front-end with backend
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: sync
+spec:
+  selector:
+    app: sync
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000

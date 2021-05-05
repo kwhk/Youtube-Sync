@@ -1,4 +1,4 @@
-package models
+package pg
 
 type User interface {
 	GetID() string

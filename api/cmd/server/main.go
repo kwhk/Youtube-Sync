@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/kwhk/sync/api/config"
-	"github.com/kwhk/sync/api/repository"
+	repository "github.com/kwhk/sync/api/repository/redis"
 	"github.com/kwhk/sync/api/routes"
 	"github.com/kwhk/sync/api/web/session"
 	_ "github.com/kwhk/sync/api/web/session/providers/memory"
@@ -20,14 +20,12 @@ import (
 
 const (
 	connPort = "8000"
-	connHost = "localhost"
 	connType = "tcp"
-	connURL = connHost + ":" + connPort
 )
 
 // WebServer starts web server
 func initWebServer(router http.Handler) {
-	fmt.Println("Starting server on " + connURL)
+	fmt.Println("Starting server on port " + connPort)
 	srv := &http.Server {
 		Addr: ":" + connPort,
 		Handler: router,
@@ -58,8 +56,9 @@ func main() {
 	db := config.ConnectToDB()
 	defer db.Close()
 	
-	userRepo := &repository.UserRepository{DB: db}
-	roomRepo := &repository.RoomRepository{DB: db}
+	userRepo := repository.UserRepository{Redis: config.Redis}
+	roomRepo := repository.RoomRepository{Redis: config.Redis}
+	playerRepo := repository.PlayerRepository{Redis: config.Redis}
 	globalSessions, _ := session.NewManager("memory", "gosessionid", 3600)
 	go globalSessions.GC()
 
@@ -69,7 +68,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Mount("/api", routes.IndexRouter(userRepo, roomRepo, globalSessions))
+	r.Mount("/", routes.IndexRouter(userRepo, roomRepo, playerRepo, globalSessions))
 
 	initWebServer(r)
 }

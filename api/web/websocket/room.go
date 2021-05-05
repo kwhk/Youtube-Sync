@@ -9,68 +9,85 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-
-	"github.com/kwhk/sync/api/utils/timer"
+	models "github.com/kwhk/sync/api/models/redis"
+	"github.com/kwhk/sync/api/utils/clock"
 	"github.com/kwhk/sync/api/config"
 )
 
 var ctx = context.Background()
 
 type Room struct {
-	ID uuid.UUID `json:"id"`
-	Name string `json:"name"`
-	Private bool `json:"private"`
+	ID string `json:"id"`
 
-	wsServer *WsServer
+	wsServer *WsServer `json:"-"`
 	register chan *Client `json:"-"`
 	unregister chan *Client `json:"-"`
-	Clients map[string]*Client `json:"-"`
+	clients map[string]*Client `json:"-"`
 	// All messages that need to broadcasted to other servers.
 	broadcast chan Message `json:"-"`
 	// All messages that need to be sent from local server to client
 
 	// Video
-	Video videoDetails `json:"-"`
+	Video videoDetails `json:"video"`
+	Clock *clock.Clock `json:"clock"`
 }
 
 type videoDetails struct {
-	Curr Video
-	Queue []Video
-	Mu sync.Mutex
+	Curr curr `json:"curr"` 
+	Queue []Video `json:"queue"`
+	mu sync.Mutex `json:"-"`
 }
 
-type Video struct {
-	// URL of video.
-	URL string `json:"url"`
-	// Duration of video in ms.
-	Duration int64 `json:"-"`
-	// Timer to record how much time elapsed since video start.
-	Timer *timer.VideoTimer `json:"-"`
-	// Status to notify joining users playback state.
-	IsPlaying bool `json:"isPlaying"`
+type curr struct {
+	Details Video `json:"details"`
+	Index int `json:"index"`
 }
 
-// FOR TESTING
-func (v *Video) elapsed() {
-	fmt.Println(v.Timer.Elapsed())
+func (c curr) Encode() []byte {
+	json, err := json.Marshal(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return json
 }
 
+func decodeCurr(p []byte) curr {
+	var curr curr
+	if err := json.Unmarshal(p, &curr); err != nil {
+		log.Printf("Error on unmarshal curr: %s\n", err)
+	}
+	return curr
+}
 
-func newRoom(name string, private bool, server *WsServer) *Room {
+func newRoom(server *WsServer) *Room {
 	return &Room {
-		ID: uuid.New(),
-		Name: name,
-		Private: private,
+		ID: uuid.New().String(),
 		wsServer: server,
 		register: make(chan *Client),
 		unregister: make(chan *Client),
-		Clients: make(map[string]*Client),
+		clients: make(map[string]*Client),
 		broadcast: make(chan Message),
+		Clock: &clock.Clock{ Start: time.Now(), Progress: 0, Stop: true }, 
 		Video: videoDetails{
-			Curr: Video{
-				Timer: &timer.VideoTimer{ Start: time.Now(), Progress: 0}, 
-			},
+			Curr: curr{Index: -1},
 			Queue: make([]Video, 0),
+		},
+	}
+}
+
+func newRoomFromRedis(room models.Room, server *WsServer) *Room {
+	return &Room{
+		ID: room.GetID(),
+		wsServer: server,
+		register: make(chan *Client),
+		unregister: make(chan *Client),
+		clients: make(map[string]*Client),
+		broadcast: make(chan Message),
+		Clock: clock.DecodeClock(room.GetClock().Encode()),
+		Video: videoDetails{
+			Curr: decodeCurr(room.GetCurrVideo().Encode()),
+			Queue: readQueue(room.GetQueue()),
 		},
 	}
 }
@@ -81,27 +98,29 @@ func (room *Room) run() {
 	for {
 		select {
 		case client := <-room.register:
-			room.wsServer.workerPool.AddJob(func() {room.registerClientInRoom(client)})
+			room.registerClient(client)
 		case client := <-room.unregister:
-			room.wsServer.workerPool.AddJob(func() {room.unregisterClientInRoom(client)})
+			room.unregisterClient(client)
 		case message := <-room.broadcast:
-			room.wsServer.workerPool.AddJob(func() {room.eventHandler(message)})
+			room.wsServer.workerPool.AddJob(func() {room.publishRoomMessage(message.encode())})
 		}
 	}
 }
 
-func (room *Room) unregisterClientInRoom(client *Client) {
-	if _, ok := room.Clients[client.GetID()]; ok {
-		delete(room.Clients, client.GetID())
+func (room *Room) unregisterClient(client *Client) {
+	if _, ok := room.clients[client.GetID()]; ok {
+		delete(room.clients, client.GetID())
+		fmt.Println("Size of connection room: ", len(room.clients))
+		room.notifyClientLeft(client)
+	} else {
+		log.Printf("Failed to unregister client %s from room %s\n", client.GetID(), room.GetID())
+		return
 	}
-	fmt.Println("Size of connection room: ", len(room.Clients))
-
-	room.notifyClientLeft(client)
 }
 
-func (room *Room) registerClientInRoom(client *Client) {
-	room.Clients[client.GetID()] = client
-	fmt.Println("Size of connection room: ", len(room.Clients))
+func (room *Room) registerClient(client *Client) {
+	room.clients[client.GetID()] = client
+	fmt.Println("Size of connection room: ", len(room.clients))
 	room.notifyClientJoined(client)
 }
 
@@ -127,18 +146,18 @@ func (room *Room) notifyClientLeft(client *Client) {
 }
 
 func (room *Room) broadcastToClients(message Message) {
-	for id, client := range room.Clients {
+	for id, client := range room.clients {
 		select {
 		case client.send <- message.encode():
 		default:
 			// Done, no more messages to send.
-			delete(room.Clients, id)
+			delete(room.clients, id)
 		}
 	}
 }
 
 func (room *Room) publishRoomMessage(message []byte) {
-	err := config.Redis.Publish(ctx, room.GetID(), message).Err()
+	err := config.Redis.Publish(ctx, room.ID, message).Err()
 
 	if err != nil {
 		log.Println(err)
@@ -157,11 +176,15 @@ func (room *Room) subscribeToRoomMessages() {
 			return
 		}
 
-		room.broadcastToClients(msg)
+		room.wsServer.workerPool.AddJob(func() {
+			if newMsg, ok := room.eventHandler(msg); ok {
+				room.broadcastToClients(newMsg)
+			}
+		})
 	}
 }
 
-func (room *Room) eventHandler(message Message) {
+func (room *Room) eventHandler(message Message) (Message, bool) {
 	var h handler
 	action := message.Action
 	switch action {
@@ -169,28 +192,47 @@ func (room *Room) eventHandler(message Message) {
 	case PlayVideoAction, PauseVideoAction, SeekToVideoAction:
 		h = newPlayback(message, room, action)
 	case PlayVideoQueueAction, AddVideoQueueAction, RemoveVideoQueueAction, EmptyVideoQueueAction:
-		h = videoQueue{message, room, action}
+		h = newVideoQueue(message, room, action)
 	case JoinRoomAction, LeaveRoomAction:
-		break
+		return message, true
 	default:
 		log.Printf("Room eventHandler does not recognize event %s.\n", action)
-		return
+		return Message{}, false
 	}
 
-	if msg, ok := h.handle(); ok {
-		room.publishRoomMessage(msg.encode())
-	}
+	return h.handle()
 }
 
 func (room *Room) GetID() string {
-	return room.ID.String()
+	return room.ID
 }
 
-func (room *Room) GetName() string {
-	return room.Name
+func (room *Room) GetCurrVideo() models.Encodable {
+	return room.Video.Curr
 }
 
-func (room *Room) GetPrivate() bool {
-	return room.Private
+func (room *Room) GetQueue() []models.Encodable {
+	var queue []models.Encodable = make([]models.Encodable, len(room.Video.Queue))
+
+	for index, val := range room.Video.Queue {
+		queue[index] = val
+	}
+
+	return queue
 }
 
+// readQueue converts slice of models.Video to slice of video
+// to match repository type
+func readQueue(queue []models.Encodable) []Video {
+	var newQueue []Video = make([]Video, len(queue))
+
+	for index, val := range queue {
+		newQueue[index] = decodeVideo(val.Encode())
+	}
+
+	return newQueue
+}
+
+func (room *Room) GetClock() models.Encodable {
+	return room.Clock
+}

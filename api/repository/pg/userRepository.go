@@ -1,8 +1,8 @@
-package repository
+package pg 
 
 import (
 	"log"
-	"github.com/kwhk/sync/api/models"
+	models "github.com/kwhk/sync/api/models/pg"
 	"github.com/go-pg/pg/v10"
 )
 

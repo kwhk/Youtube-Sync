@@ -8,7 +8,9 @@ export default class Socket {
         let self = this;
 
         return new Promise(function(resolve, reject) {
-            let server = new WebSocket('ws://localhost:8000/api/ws');
+            // Uncomment line below when deploying to kubernetes
+            let server = new WebSocket(`wss://${window.location.hostname}/api/ws`);
+            // let server = new WebSocket(`ws://localhost:8000/api/ws`)
             server.onclose = function(event) {
                 let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
                 console.log('Connection closed: ' + e);
@@ -28,7 +30,6 @@ export default class Socket {
     }
 
     disconnect() {
-        console.log('I want to disconnect!')
         let self = this;
         return new Promise(function(resolve, reject) {
             self.server.onclose = function(event) {
