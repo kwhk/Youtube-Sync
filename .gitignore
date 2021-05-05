@@ -35,3 +35,23 @@ typings/
 
 # Yarn Integrity file
 .yarn-integrity
+
+.env
+
+## For Go
+
+# Binaries, plugins, libs
+*.dll
+*.dylib
+*.exe
+*.exe~
+*.so
+
+# Testing
+*.test
+*.tmp
+
+*.rdb
+
+client/build
+configMaps

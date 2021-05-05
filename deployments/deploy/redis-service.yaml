@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: sync
+spec:
+  selector:
+    app: sync
+    tier: redis
+  ports:
+    - port: 6379
+      targetPort: 6379

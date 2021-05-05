@@ -1,0 +1,26 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-service
+  namespace: sync
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  tls:
+    - hosts: 
+        - sync-with.me
+    - secretName: syncwithme-tls
+  rules:
+    - host: sync-with.me
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              serviceName: backend-service
+              servicePort: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              serviceName: frontend-service
+              servicePort: 3000

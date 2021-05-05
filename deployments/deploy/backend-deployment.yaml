@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: sync
+spec:
+  selector:
+    matchLabels:
+      app: sync
+      tier: backend
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: sync
+        tier: backend
+    spec:
+      containers:
+      - name: go-server
+        image: kwhk/sync-server:v0.1-arm32v7
+        imagePullPolicy: Always
+        ports:
+          - name: http
+            containerPort: 8000
+        envFrom:
+          - configMapRef:
+              name: postgres-db
+      imagePullSecrets:
+      - name: regcred
