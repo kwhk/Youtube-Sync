@@ -9,7 +9,7 @@ export default class Socket {
 
         return new Promise(function(resolve, reject) {
             // Uncomment line below when deploying to kubernetes
-            let server = new WebSocket(`ws://${window.location.hostname}/api/ws`);
+            let server = new WebSocket(`wss://${window.location.hostname}/api/ws`);
             // let server = new WebSocket(`ws://localhost:8000/api/ws`)
             server.onclose = function(event) {
                 let e = JSON.stringify(event, ["message", "arguments", "type", "name"]);
