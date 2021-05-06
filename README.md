@@ -16,18 +16,6 @@ A web app written in React/Redux and Go, aimed to sync Youtube videos between us
     $ minikube addons enable ingress
     ```
 
-## Setup kubernetes to deploy project to cluster hosted on AWS (using `kubeadm`)
-
-For this project we will deploy a kubernetes cluster with only one node (that node being the master, control-plane).
-
-0. Create an AWS EC2 instance (Ubuntu 18.04) that has at least 2 CPUs, and 2GB memory. This is the minimum specs required for the master node.
-
-1. Follow this [setup guide](https://www.howtoforge.com/setup-a-kubernetes-cluster-on-aws-ec2-instance-ubuntu-using-kubeadm/) which covers the installation of docker, kubernetes, `kubeadm` and setup of a basic kubernetes cluster.
-
-2. Git clone this project to the EC2 server, and create a config map directory which holds all environment variables.
-
-3. 
-
 ## How to deploy project 
 1. Since our api server docker image is hosted on a private registry on Docker Hub, we need to create a secret for authentication (refer to `deployments/backend-deployment.yaml` `imagePullSecrets`) We will name our secret `regcred`:
 
